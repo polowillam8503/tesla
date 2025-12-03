@@ -10,10 +10,23 @@ body {
 }
 
 /* Custom Scrollbar */
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: #0b0e11; }
-::-webkit-scrollbar-thumb { background: #2b3139; border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: #474d57; }
+::-webkit-scrollbar { 
+  width: 4px; 
+  height: 4px; 
+}
+
+::-webkit-scrollbar-track { 
+  background: #0b0e11; 
+}
+
+::-webkit-scrollbar-thumb { 
+  background: #2b3139; 
+  border-radius: 2px; 
+}
+
+::-webkit-scrollbar-thumb:hover { 
+  background: #474d57; 
+}
 
 .glass {
   background: rgba(24, 26, 32, 0.95);
@@ -24,16 +37,20 @@ body {
 .animate-marquee {
   animation: marquee 30s linear infinite;
 }
+
 @keyframes marquee {
   0% { transform: translateX(0); }
   100% { transform: translateX(-50%); }
 }
 
 /* Hide Recharts default tooltip styles to fix ghosting */
-.recharts-tooltip-cursor { fill: rgba(255, 255, 255, 0.05); }
+.recharts-tooltip-cursor { 
+  fill: rgba(255, 255, 255, 0.05); 
+}
 
 /* Hide number input spinners */
 input[type=number]::-webkit-inner-spin-button, 
 input[type=number]::-webkit-outer-spin-button { 
   -webkit-appearance: none; 
   margin: 0; 
+}
