@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import { Wallet, ArrowLeftRight, Download, Upload, Eye, EyeOff, Copy, Check, History, Link, Plus, ChevronRight, TrendingUp, PieChart } from 'lucide-react';
@@ -33,7 +32,10 @@ export const Assets: React.FC = () => {
       return acc + (safeAmount * price);
   }, 0);
 
-  const btcPrice = (marketData && Array.isArray(marketData)) ? (Number(marketData.find(c => c.symbol === 'btc')?.current_price) || 65000) : 65000;
+  const btcPrice = (marketData && Array.isArray(marketData) && marketData.length > 0) 
+      ? (Number(marketData.find(c => c.symbol === 'btc')?.current_price) || 60000) 
+      : 60000;
+      
   const btcValue = btcPrice > 0 ? (totalBalanceUSDT / btcPrice) : 0;
   const yesterdayPnL = totalBalanceUSDT * (Math.random() > 0.5 ? 0.02 : -0.015);
   

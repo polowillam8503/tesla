@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useStore } from '../context/StoreContext';
-import { OrderType, TradeType } from '../types';
+import { OrderType, TradeType, CoinData } from '../types';
 import { createChart, ColorType, CrosshairMode } from 'lightweight-charts';
-import { ChevronDown, Search, Info, X, ArrowUp, ArrowDown, BarChart2, List, Clock, Zap, AlertTriangle, FileText } from 'lucide-react';
+import { ChevronDown, Search, Info, X, ArrowUp, ArrowDown, BarChart2, List, Clock, Zap, AlertTriangle, FileText, Settings } from 'lucide-react';
 
 export const Trade: React.FC<{ defaultCoinId?: string }> = ({ defaultCoinId }) => {
   const { marketData, currentUser, placeOrder, userOrders, cancelOrder, t, showNotification } = useStore();
@@ -47,16 +47,33 @@ export const Trade: React.FC<{ defaultCoinId?: string }> = ({ defaultCoinId }) =
   const candleSeries = useRef<any>(null);
 
   // CRITICAL FIX: Ensure selectedCoin always has a value to prevent "Object is undefined" build errors
-  const selectedCoin = useMemo(() => {
+  const selectedCoin: CoinData = useMemo(() => {
       const coin = marketData.find(c => c.id === selectedCoinId);
-      // Fallback object to satisfy TypeScript
-      return coin || marketData[0] || {
-          id: 'bitcoin', symbol: 'btc', name: 'Bitcoin', current_price: 0, 
-          image: '', price_change_percentage_24h: 0, high_24h: 0, total_volume: 0,
-          market_cap: 0, circulating_supply: 0, isCustom: false,
-          market_cap_rank: 0, fully_diluted_valuation: 0, low_24h: 0, price_change_24h: 0,
-          total_supply: 0, max_supply: 0, ath: 0, atl: 0
+      
+      const fallbackCoin: CoinData = {
+          id: 'bitcoin', 
+          symbol: 'btc', 
+          name: 'Loading...', 
+          current_price: 0, 
+          image: '', 
+          price_change_percentage_24h: 0, 
+          high_24h: 0, 
+          total_volume: 0,
+          market_cap: 0, 
+          circulating_supply: 0, 
+          isCustom: false,
+          market_cap_rank: 0, 
+          fully_diluted_valuation: 0, 
+          low_24h: 0, 
+          price_change_24h: 0,
+          total_supply: 0, 
+          max_supply: 0, 
+          ath: 0, 
+          atl: 0,
+          sparkline_in_7d: { price: [] }
       };
+
+      return coin || (marketData.length > 0 ? marketData[0] : fallbackCoin);
   }, [marketData, selectedCoinId]);
 
   const [marketTrades, setMarketTrades] = useState<{price: number, amount: number, time: string, type: 'buy'|'sell'}[]>([]);
