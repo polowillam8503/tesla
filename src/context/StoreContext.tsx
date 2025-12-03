@@ -119,7 +119,6 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   
   const [marketData, setMarketData] = useState<CoinData[]>(fallbackMarketData);
   const [deployedTokens, setDeployedTokens] = useState<CustomTokenConfig[]>([]);
-  const [candleData, _setCandleData] = useState<Record<string, CandleData[]>>({});
   const [customToken, setCustomToken] = useState<CustomTokenConfig>(initialCustomToken);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);

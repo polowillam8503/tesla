@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../context/StoreContext';
-import { Gift, Zap, Hammer, Cpu, Share2, Check, Lock, Unlock, ShoppingCart, Server, Database, Network, Copy } from 'lucide-react';
+import { Zap, Hammer, Share2, Check, Lock, Unlock, ShoppingCart, Server, Database, Network, Copy } from 'lucide-react';
 import { MiningRig } from '../types';
 
 export const Airdrop: React.FC = () => {

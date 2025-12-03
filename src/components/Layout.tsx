@@ -1,8 +1,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../context/StoreContext';
-import { Menu as MenuIcon, LogOut, Globe, X, RefreshCw, User as UserIcon, AlertCircle, CheckCircle, Info, Twitter, Facebook, Instagram, ChevronDown, Activity, Zap, TrendingUp, Cpu, Gift, CreditCard, ChevronRight, MessageCircle, Mail, Shield, Server } from 'lucide-react';
-import { Language, ChatMessage } from '../types';
+import { Menu as MenuIcon, LogOut, Globe, X, RefreshCw, User as UserIcon, AlertCircle, CheckCircle, Info, Twitter, Facebook, Instagram, ChevronDown, Activity, Zap, TrendingUp, Cpu, Gift, CreditCard, ChevronRight, MessageCircle, Mail, Shield } from 'lucide-react';
+import { Language } from '../types';
 
 interface LayoutProps {
   children: React.ReactNode;
