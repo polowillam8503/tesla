@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
-import { Wallet, ArrowLeftRight, Download, Upload, Eye, EyeOff, Copy, Check, History, Link, Plus, ChevronRight, TrendingUp, PieChart } from 'lucide-react';
+import { Wallet, ArrowLeftRight, Download, Upload, Eye, EyeOff, Copy, Check, History, Link, Plus, TrendingUp } from 'lucide-react';
 import { AccountType } from '../types';
 
 export const Assets: React.FC = () => {

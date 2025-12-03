@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useStore } from '../context/StoreContext';
 import { OrderType, TradeType, CoinData } from '../types';
 import { createChart, ColorType, CrosshairMode } from 'lightweight-charts';
-import { ChevronDown, Search, Info, X, ArrowUp, ArrowDown, BarChart2, List, Clock, Zap, AlertTriangle, FileText, Settings } from 'lucide-react';
+import { ChevronDown, Search, Info, X, ArrowUp, ArrowDown, BarChart2, List, Clock, Zap, AlertTriangle, FileText } from 'lucide-react';
 
 export const Trade: React.FC<{ defaultCoinId?: string }> = ({ defaultCoinId }) => {
   const { marketData, currentUser, placeOrder, userOrders, cancelOrder, t, showNotification } = useStore();
@@ -23,7 +24,7 @@ export const Trade: React.FC<{ defaultCoinId?: string }> = ({ defaultCoinId }) =
       }
   }, [marketData, defaultCoinId]);
 
-  const [tradeType, setTradeType] = useState<TradeType>(TradeType.SPOT);
+  const [tradeType] = useState<TradeType>(TradeType.SPOT);
   const [orderType, setOrderType] = useState<OrderType>(OrderType.BUY);
   const [priceType, setPriceType] = useState<'LIMIT' | 'MARKET' | 'STOP'>('LIMIT');
   const [inputPrice, setInputPrice] = useState<string>('');
@@ -39,14 +40,11 @@ export const Trade: React.FC<{ defaultCoinId?: string }> = ({ defaultCoinId }) =
   const [mobileTab, setMobileTab] = useState<'CHART' | 'BOOK' | 'TRADES' | 'TRADE'>('CHART');
   const [mobileTradeSide, setMobileTradeSide] = useState<'BUY' | 'SELL' | null>(null);
   const [orderTab, setOrderTab] = useState<'OPEN' | 'HISTORY'>('OPEN');
-  const [postOnly, setPostOnly] = useState(false);
-  const [reduceOnly, setReduceOnly] = useState(false);
 
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartInstance = useRef<any>(null);
   const candleSeries = useRef<any>(null);
 
-  // CRITICAL FIX: Ensure selectedCoin always has a value to prevent "Object is undefined" build errors
   const selectedCoin: CoinData = useMemo(() => {
       const coin = marketData.find(c => c.id === selectedCoinId);
       
@@ -183,7 +181,18 @@ export const Trade: React.FC<{ defaultCoinId?: string }> = ({ defaultCoinId }) =
 
   useEffect(() => { const i = setInterval(()=>{ const t=Math.random()>0.5?'buy':'sell'; const p=(Number(selectedCoin.current_price || 100))*(1+(Math.random()-0.5)*0.001); const a=Math.random(); setMarketTrades(pre=>[{price:p, amount:a, time:new Date().toLocaleTimeString([],{hour12:false}), type:t}, ...pre.slice(0,30)]); },800); return ()=>clearInterval(i); }, [selectedCoin.id]);
 
-  const handleOrder = () => { if(!currentUser) return showNotification('error', t('login_title')); const p = parseFloat(inputPrice); const a = parseFloat(inputAmount); if(isNaN(a) || a<=0) return showNotification('error', 'Invalid Amount'); const success = placeOrder(selectedCoin.symbol, orderType, tradeType, p, a, leverage, parseFloat(triggerPrice)); if(success) { setInputAmount(''); setInputTotal(''); if(mobileTradeSide) setMobileTradeSide(null); } };
+  const handleOrder = async () => { 
+      if(!currentUser) { showNotification('error', t('login_title')); return; } 
+      const p = parseFloat(inputPrice); 
+      const a = parseFloat(inputAmount); 
+      if(isNaN(a) || a<=0) { showNotification('error', 'Invalid Amount'); return; } 
+      const success = await placeOrder(selectedCoin.symbol, orderType, tradeType, p, a, leverage, parseFloat(triggerPrice)); 
+      if(success) { 
+          setInputAmount(''); 
+          setInputTotal(''); 
+          if(mobileTradeSide) setMobileTradeSide(null); 
+      } 
+  };
   const purchasingPower = (currentUser?.tradingWallet.find(a => a.symbol === 'USDT')?.amount || 0) * (orderType === OrderType.BUY ? leverage : 1);
   const estimatedCost = (parseFloat(inputPrice) || Number(selectedCoin.current_price || 0)) * parseFloat(inputAmount) || 0;
 

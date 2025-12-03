@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../context/StoreContext';
-import { Gift, Clock, Zap, Hammer, Cpu, Share2, Users, Activity, Copy, Check, Lock, Unlock, ShoppingCart, Server, BarChart, Database, Network } from 'lucide-react';
+import { Gift, Zap, Hammer, Cpu, Share2, Check, Lock, Unlock, ShoppingCart, Server, Database, Network, Copy } from 'lucide-react';
 import { MiningRig } from '../types';
 
 export const Airdrop: React.FC = () => {
-    const { customToken, currentUser, mine, boostHashrate, claimAirdrop, buyRig, miningRigs, t, showNotification } = useStore();
+    const { customToken, currentUser, mine, claimAirdrop, buyRig, miningRigs, t, showNotification } = useStore();
     const [isMining, setIsMining] = useState(false);
     const [copied, setCopied] = useState(false);
     const [activeTab, setActiveTab] = useState<'MINING' | 'REFERRAL'>('MINING');

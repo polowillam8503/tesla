@@ -1,6 +1,6 @@
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
-import { User, CoinData, NewsItem, CustomTokenConfig, Order, OrderType, TradeType, AssetBalance, AccountType, Transaction, Language, CandleData, MiningRig, SystemSettings } from '../types';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { User, CoinData, NewsItem, CustomTokenConfig, Order, OrderType, TradeType, AccountType, Transaction, Language, CandleData, MiningRig, SystemSettings, ChatMessage } from '../types';
 import { translations } from '../services/i18n';
 import { supabase } from '../lib/supabase';
 
@@ -19,6 +19,7 @@ interface StoreContextType {
   sendVerificationCode: (email: string) => Promise<boolean>;
   bindExternalWallet: (address: string) => void;
   verifyKYC: () => void;
+  submitKYC: () => void; // Alias for verifyKYC
   toggle2FA: () => void;
   
   notifications: Notification[];
@@ -41,6 +42,10 @@ interface StoreContextType {
   
   systemSettings: SystemSettings;
   updateSystemSettings: (settings: Partial<SystemSettings>) => void;
+
+  // Chat
+  chatMessages: ChatMessage[];
+  sendChatMessage: (text: string) => void;
 
   // Mining
   miningRigs: MiningRig[];
@@ -114,9 +119,10 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   
   const [marketData, setMarketData] = useState<CoinData[]>(fallbackMarketData);
   const [deployedTokens, setDeployedTokens] = useState<CustomTokenConfig[]>([]);
-  const [candleData, setCandleData] = useState<Record<string, CandleData[]>>({});
+  const [candleData, _setCandleData] = useState<Record<string, CandleData[]>>({});
   const [customToken, setCustomToken] = useState<CustomTokenConfig>(initialCustomToken);
   const [news, setNews] = useState<NewsItem[]>([]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [miningRigs, setMiningRigs] = useState<MiningRig[]>(defaultRigs);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [language, setLanguage] = useState<Language>('en');
@@ -202,7 +208,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       return true;
   };
 
-  const register = async (email: string, password: string, code: string, inviteCode?: string): Promise<boolean> => {
+  const register = async (email: string, password: string, _code: string, inviteCode?: string): Promise<boolean> => {
       const { error } = await supabase.auth.signUp({ email, password, options: { data: { invite_code: inviteCode } } });
       if (error) { showNotification('error', error.message); return false; }
       showNotification('success', 'Confirmation email sent!');
@@ -216,7 +222,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       showNotification('info', 'Logged out');
   };
   
-  const sendVerificationCode = async (email: string): Promise<boolean> => {
+  const sendVerificationCode = async (_email: string): Promise<boolean> => {
       showNotification('info', 'Check email for link.');
       return true;
   };
@@ -348,7 +354,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       }
   };
 
-  const adminUpdateUserPassword = async (userId: string, newPass: string) => {
+  const adminUpdateUserPassword = async (_userId: string, _newPass: string) => {
       await new Promise(resolve => setTimeout(resolve, 1000));
       showNotification('success', 'Password Update Requested (Simulation)');
   };
@@ -359,12 +365,13 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       fetchAllUsers();
   };
   
-  const bindExternalWallet = (addr: string) => { if(currentUser) showNotification('success', 'Wallet Linked'); };
+  const bindExternalWallet = (_addr: string) => { if(currentUser) showNotification('success', 'Wallet Linked'); };
   const verifyKYC = () => { showNotification('success', 'KYC Submitted'); };
+  const submitKYC = () => { verifyKYC(); };
   const toggle2FA = () => { showNotification('success', '2FA Updated'); };
-  const mine = (uid: string) => {}; 
-  const boostHashrate = (uid: string) => {}; 
-  const buyRig = (uid: string, rig: MiningRig) => true;
+  const mine = (_uid: string) => {}; 
+  const boostHashrate = (_uid: string) => {}; 
+  const buyRig = (_uid: string, _rig: MiningRig) => true;
   const addRigToUser = (userId: string, rig: MiningRig) => {
       const user = allUsers.find(u => u.id === userId);
       if(!user) return;
@@ -372,7 +379,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       const newHashrate = user.hashrate + rig.hashrate;
       updateUser(userId, { rigs: newRigs, hashrate: newHashrate });
   };
-  const claimAirdrop = (uid: string) => true; 
+  const claimAirdrop = (_uid: string) => true; 
   
   const placeOrder = async (symbol: string, type: OrderType, tradeType: TradeType, price: number, amount: number, leverage: number, triggerPrice?: number) => { 
       if (!currentUser) return false;
@@ -392,7 +399,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           coin.frozen = (coin.frozen || 0) + amount;
       }
 
-      const newOrder: Order = { id: Math.random().toString(36).substr(2, 9), userId: currentUser.id, symbol, type, tradeType, priceType: price > 0 ? 'LIMIT' : 'MARKET', price, amount, total: totalCost, timestamp: Date.now(), status: 'OPEN' };
+      const newOrder: Order = { id: Math.random().toString(36).substr(2, 9), userId: currentUser.id, symbol, type, tradeType, priceType: price > 0 ? 'LIMIT' : 'MARKET', price, amount, total: totalCost, leverage, triggerPrice, timestamp: Date.now(), status: 'OPEN' };
       setUserOrders(prev => [newOrder, ...prev]);
       await updateUser(currentUser.id, { tradingWallet: wallet });
       showNotification('success', 'Order Placed'); 
@@ -429,7 +436,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       const tx: Transaction = {
           id: Date.now().toString(),
           userId: currentUser.id,
-          type: 'ORDER_CANCEL' as any, // Cast to avoid type issues if types.ts isn't fully updated yet
+          type: 'ORDER_CANCEL' as any, 
           symbol: order.type === OrderType.BUY ? 'USDT' : order.symbol,
           amount: order.type === OrderType.BUY ? order.total : order.amount,
           status: 'COMPLETED',
@@ -520,7 +527,6 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       if (dbTokens && dbTokens.length > 0) {
           mergedTokens = dbTokens;
       } else {
-          // Map local config format to DB format shim if needed, or just use as is
           mergedTokens = localTokens; 
       }
 
@@ -529,11 +535,6 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       
       let latestToken = customToken;
       let tokenChanged = false;
-
-      // Ensure we have at least TSLA if nothing exists
-      if (mergedTokens.length === 0 && localTokens.length === 0) {
-          // If absolutely nothing, maybe user cleared everything. We keep standard fallback.
-      }
 
       mergedTokens.forEach((t: any, index: number) => {
           // Consistent ID format: symbol-token (e.g., tsla-token)
@@ -552,7 +553,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
               market_cap: price * supply, 
               market_cap_rank: 999,
               fully_diluted_valuation: null,
-              total_volume: price * 50000, // Simulated volume
+              total_volume: price * 50000, 
               high_24h: price * 1.05, 
               low_24h: price * 0.95, 
               price_change_24h: price * (change / 100), 
@@ -566,7 +567,6 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
               isCustom: true
           };
           
-          // Avoid duplicates if merging lists badly (though we prioritized one list above)
           if (!customCoins.find(c => c.id === tokenId)) {
               customCoins.push(coinData);
           }
@@ -612,7 +612,11 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       setIsLoading(false);
   };
   
-  const generateCandles = (basePrice: number, timeframe: string = '15m'): CandleData[] => { const candles: CandleData[] = []; let current = basePrice; const now = Math.floor(Date.now()/1000); let iv = 15*60; if(timeframe==='1H') iv=3600; if(timeframe==='4H') iv=14400; if(timeframe==='1D') iv=86400; for(let i=0; i<100; i++) { const time = now - (i*iv); const vol = current*0.015; const close = current; const open = current-(Math.random()-0.5)*vol; const high = Math.max(open,close)+Math.random()*(vol*0.4); const low = Math.min(open,close)-Math.random()*(vol*0.4); const volume = Math.random()*1000; candles.unshift({time: time as any, open, high, low, close, volume}); current=open; } return candles; };
+  const generateCandles = (basePrice: number, timeframe: string = '15m'): CandleData[] => { const candles: CandleData[] = []; let current = basePrice; const now = Math.floor(Date.now()/1000); let iv = 15*60; if(timeframe==='1H') iv=3600; if(timeframe==='4H') iv=14400; if(timeframe==='1D') iv=86400; for(let i=0; i<100; i++) { const time = (now - (i*iv)) as any; const vol = current*0.015; const close = current; const open = current-(Math.random()-0.5)*vol; const high = Math.max(open,close)+Math.random()*(vol*0.4); const low = Math.min(open,close)-Math.random()*(vol*0.4); const volume = Math.random()*1000; candles.unshift({time, open, high, low, close, volume}); current=open; } return candles; };
+
+  const sendChatMessage = (text: string) => {
+      setChatMessages(prev => [...prev, { user: currentUser?.email || 'Guest', text, time: new Date().toLocaleTimeString() }]);
+  };
 
   useEffect(() => { refreshMarketData(); }, []);
   const addNews = (item: NewsItem) => setNews(p => [item, ...p]);
@@ -620,12 +624,13 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   return (
     <StoreContext.Provider value={{
-      currentUser, allUsers, login, register, logout, sendVerificationCode, bindExternalWallet, verifyKYC, toggle2FA,
-      notifications, showNotification, removeNotification, marketData, candleData, refreshMarketData, generateCandles,
+      currentUser, allUsers, login, register, logout, sendVerificationCode, bindExternalWallet, verifyKYC, submitKYC, toggle2FA,
+      notifications, showNotification, removeNotification, marketData, candleData: {}, refreshMarketData, generateCandles,
       customToken, updateCustomToken, news, addNews, systemSettings, updateSystemSettings, placeOrder, userOrders, userTransactions,
       cancelOrder, deposit, withdraw, transfer, mine, boostHashrate, buyRig, addRigToUser, claimAirdrop, updateUser, adminUpdateUserPassword, deleteUser,
       fetchPendingDeposits, approveDeposit, issueNewToken, deleteToken, deployedTokens, 
       miningRigs, updateMiningRig,
+      chatMessages, sendChatMessage,
       language, setLanguage, t, isLoading
     }}>
       {children}

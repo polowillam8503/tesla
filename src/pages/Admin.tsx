@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
-import { Settings, Plus, Save, Users, AlertTriangle, Lock, Unlock, Trash2, Edit, LayoutDashboard, Megaphone, Coins, LogOut, X, Share2, RefreshCw, Key, Shield, Activity, Wallet, Hammer } from 'lucide-react';
+import { Settings, Plus, Save, Users, AlertTriangle, Lock, Unlock, Trash2, Edit, Megaphone, Coins, LogOut, X, RefreshCw, Key, Wallet, Hammer, Activity } from 'lucide-react';
 import { User, CustomTokenConfig } from '../types';
 
 export const Admin: React.FC = () => {
@@ -21,7 +21,6 @@ export const Admin: React.FC = () => {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editTab, setEditTab] = useState<'OVERVIEW' | 'ASSETS' | 'MINING' | 'SECURITY'>('OVERVIEW');
   
-  // Helper to safely get balance
   const getSafeBalance = (wallet: any[], symbol: string): number => {
       if (!Array.isArray(wallet)) return 0;
       const asset = wallet.find(a => a && a.symbol === symbol);

@@ -1,3 +1,4 @@
+
 export type Language = 'en' | 'zh' | 'ja' | 'ko' | 'ru' | 'fr' | 'es';
 
 export interface CoinData {
@@ -21,8 +22,6 @@ export interface CoinData {
   atl: number;
   sparkline_in_7d?: { price: number[] };
   isCustom?: boolean;
-  chain?: string;
-  contractAddress?: string;
 }
 
 export interface CoinRank {
@@ -33,12 +32,12 @@ export interface CoinRank {
 }
 
 export interface CandleData {
-  time: number;
+  time: string;
   open: number;
   high: number;
   low: number;
   close: number;
-  volume?: number;
+  volume: number;
 }
 
 export interface NewsItem {
@@ -56,16 +55,16 @@ export type AccountType = 'FUNDING' | 'TRADING';
 export interface AssetBalance {
   symbol: string;
   amount: number;
-  frozen: number;
+  frozen: number; // For open orders
 }
 
 export interface MiningRig {
   id: string;
   name: string;
-  hashrate: number;
-  cost: number;
-  dailyOutput: number;
-  purchasedDate?: string;
+  hashrate: number; // MH/s
+  cost: number; // USDT
+  dailyOutput: number; // TSLA
+  purchasedDate: string;
 }
 
 export interface ReferralStats {
@@ -79,20 +78,19 @@ export interface User {
   isAdmin: boolean;
   isFrozen: boolean;
   kycLevel: number;
-  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
-  feeRate: number;
+  riskLevel?: 'LOW' | 'MEDIUM' | 'HIGH';
+  feeRate?: number;
   fundingWallet: AssetBalance[];
   tradingWallet: AssetBalance[];
   miningBalance: number;
-  hashrate: number;
-  rigs: MiningRig[];
+  hashrate: number; // Total Hashrate
+  rigs: MiningRig[]; // Owned Rigs
   inviteCode: string;
   referralCount: number;
-  referralEarnings: number;
+  referralEarnings: number; // USDT
   lastLogin: string;
   registerDate: string;
   externalWalletAddress?: string;
-  hasClaimedAirdrop: boolean; // NEW FIELD
 }
 
 export enum OrderType {
@@ -113,10 +111,10 @@ export interface Order {
   tradeType: TradeType;
   priceType: 'LIMIT' | 'MARKET' | 'STOP';
   price: number;
-  triggerPrice?: number;
+  triggerPrice?: number; // For Stop Limit
   amount: number;
   total: number;
-  leverage: number;
+  leverage?: number;
   timestamp: number;
   status: 'OPEN' | 'FILLED' | 'CANCELLED';
 }
@@ -128,21 +126,20 @@ export interface CustomTokenConfig {
   priceChangePercent: number;
   supply: number;
   description: string;
-  logoUrl?: string;
-  chain?: string;
-  contractAddress?: string;
-  minWithdraw: number;
-  feeRate: number;
   enabled: boolean;
+  contractAddress?: string;
+  logoUrl?: string;
+  minWithdraw?: number;
+  feeRate?: number;
 }
 
 export interface Transaction {
   id: string;
   userId: string;
-  type: 'DEPOSIT' | 'WITHDRAW' | 'TRANSFER' | 'TRADE_BUY' | 'TRADE_SELL' | 'MINING' | 'ADMIN_ADJUST' | 'RIG_PURCHASE';
+  type: 'DEPOSIT' | 'WITHDRAW' | 'TRANSFER' | 'TRADE_BUY' | 'TRADE_SELL' | 'MINING' | 'ADMIN_ADJUST' | 'RIG_PURCHASE' | 'ORDER_CANCEL';
   symbol: string;
   amount: number;
-  price?: number;
+  price?: number; // For trades
   status: 'COMPLETED' | 'PENDING' | 'FAILED';
   date: string;
 }
@@ -153,5 +150,10 @@ export interface SystemSettings {
     discord: string;
     supportEmail: string;
     announcementBar: string;
-    adminWalletAddress?: string;
+}
+
+export interface ChatMessage {
+    user: string;
+    text: string;
+    time: string;
 }
