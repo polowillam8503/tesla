@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, CoinData, NewsItem, CustomTokenConfig, Order, OrderType, TradeType, AccountType, Transaction, Language, CandleData, MiningRig, SystemSettings, ChatMessage } from '../types';
 import { translations } from '../services/i18n';
 import { supabase } from '../lib/supabase';
