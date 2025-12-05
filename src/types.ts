@@ -32,7 +32,7 @@ export interface CoinRank {
 }
 
 export interface CandleData {
-  time: string;
+  time: number | string; // Changed to allow timestamp (number)
   open: number;
   high: number;
   low: number;
@@ -125,6 +125,7 @@ export interface CustomTokenConfig {
   price: number;
   priceChangePercent: number;
   supply: number;
+  volume24h: number;
   description: string;
   enabled: boolean;
   contractAddress?: string;

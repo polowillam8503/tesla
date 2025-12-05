@@ -1,8 +1,8 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Base Styles */
 body { 
   font-family: 'Inter', sans-serif; 
   background-color: #0b0e11; 
@@ -29,6 +29,7 @@ body {
   background: #474d57; 
 }
 
+/* Utility Classes */
 .glass {
   background: rgba(24, 26, 32, 0.95);
   backdrop-filter: blur(12px);
@@ -44,12 +45,12 @@ body {
   100% { transform: translateX(-50%); }
 }
 
-/* Hide Recharts default tooltip styles to fix ghosting */
+/* Recharts Fixes */
 .recharts-tooltip-cursor { 
   fill: rgba(255, 255, 255, 0.05); 
 }
 
-/* Hide number input spinners */
+/* Form Input Resets */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
