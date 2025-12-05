@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useStore } from '../context/StoreContext';
 import { OrderType, TradeType, CoinData } from '../types';
-import { createChart, ColorType, CrosshairMode } from 'lightweight-charts';
+import { createChart } from 'lightweight-charts';
 import { ChevronDown, Search, Info, X, ArrowUp, ArrowDown, BarChart2, List, Clock, Zap, AlertTriangle, FileText } from 'lucide-react';
 
 export const Trade: React.FC<{ defaultCoinId?: string }> = ({ defaultCoinId }) => {
@@ -75,10 +75,8 @@ export const Trade: React.FC<{ defaultCoinId?: string }> = ({ defaultCoinId }) =
 
   const [marketTrades, setMarketTrades] = useState<{price: number, amount: number, time: string, type: 'buy'|'sell'}[]>([]);
 
-  // Update input price when coin changes OR when admin updates price (re-render)
   useEffect(() => {
     if (selectedCoin && (selectedCoin.current_price || 0) > 0) {
-      // Only auto-fill if input is empty or if we switched coins
       if(inputPrice === '' || selectedCoin.id !== selectedCoinId) {
           setInputPrice(Number(selectedCoin.current_price || 0).toString());
       }
@@ -133,7 +131,6 @@ export const Trade: React.FC<{ defaultCoinId?: string }> = ({ defaultCoinId }) =
   useEffect(() => {
     if (!chartContainerRef.current || !selectedCoin.id) return;
     
-    // Dispose old chart if exists
     if (chartInstance.current) {
         try {
             chartInstance.current.remove();
@@ -144,7 +141,7 @@ export const Trade: React.FC<{ defaultCoinId?: string }> = ({ defaultCoinId }) =
     try {
         const chart = createChart(chartContainerRef.current, { 
             layout: { 
-                background: { type: 'Solid' as any, color: '#161a1e' }, // Use string literal to avoid enum import issues
+                background: { type: 'Solid' as any, color: '#161a1e' }, 
                 textColor: '#848e9c', 
             }, 
             grid: { 
@@ -152,19 +149,17 @@ export const Trade: React.FC<{ defaultCoinId?: string }> = ({ defaultCoinId }) =
                 horzLines: { color: 'rgba(255,255,255,0.05)' } 
             }, 
             crosshair: { 
-                mode: 1 // CrosshairMode.Normal = 1
+                mode: 1 
             },
             width: chartContainerRef.current.clientWidth,
             height: chartContainerRef.current.clientHeight
         });
 
-        // Ensure chart is valid before adding series
         if (!chart) {
             console.error("Failed to create chart instance");
             return;
         }
 
-        // Cast to any to avoid type check issues with different lightweight-charts versions
         const series = (chart as any).addCandlestickSeries({ 
             upColor: '#0ecb81', 
             downColor: '#f6465d', 
@@ -202,7 +197,6 @@ export const Trade: React.FC<{ defaultCoinId?: string }> = ({ defaultCoinId }) =
                    } else throw new Error();
                 }
             } catch {
-                // Fallback Generator
                 let c=Number(selectedCoin.current_price || 100); 
                 const now=Math.floor(Date.now()/1000); 
                 const arr=[];

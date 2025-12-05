@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useStore } from '../context/StoreContext';
 import { Shield, CheckCircle, Lock, User as UserIcon, AlertCircle } from 'lucide-react';

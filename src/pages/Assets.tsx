@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import { Wallet, ArrowLeftRight, Download, Upload, Eye, EyeOff, Copy, Check, History, Link, Plus, TrendingUp, Edit2 } from 'lucide-react';
@@ -15,7 +14,6 @@ export const Assets: React.FC = () => {
   
   const officialWalletAddress = "0xEdd97C7577B9782369DC1E385D31c78f5515d272";
   
-  // Transfer Direction
   const [transferFrom, setTransferFrom] = useState<AccountType>('FUNDING');
   
   if (!currentUser) { return (<div className="flex flex-col items-center justify-center h-[80vh] text-center"><div className="w-20 h-20 bg-[#2b3139] rounded-full flex items-center justify-center mb-6"><Wallet size={40} className="text-[#848e9c]" /></div><h2 className="text-2xl font-bold mb-2 text-white">Please Log In</h2><p className="text-[#848e9c] max-w-md">Access your digital asset portfolio, manage funds, and view transaction history.</p></div>); }
@@ -42,10 +40,8 @@ export const Assets: React.FC = () => {
       
   const btcValue = btcPrice > 0 ? (totalBalanceUSDT / btcPrice) : 0;
   
-  // More realistic PnL: In a real app this would compare current value vs entry cost. 
-  // Here we simulate based on market movement of held assets.
   const yesterdayPnL = wallet.reduce((acc, curr) => {
-      if (curr.symbol === 'USDT') return acc; // Stablecoin no PnL
+      if (curr.symbol === 'USDT') return acc;
       const coin = marketData.find(c => c.symbol.toLowerCase() === curr.symbol.toLowerCase());
       if (!coin) return acc;
       const change = Number(coin.price_change_percentage_24h || 0);
@@ -59,7 +55,6 @@ export const Assets: React.FC = () => {
       if (modalType === 'DEPOSIT') { 
           deposit(currentUser.id, selectedAsset, amount); 
       } else if (modalType === 'WITHDRAW') { 
-          // Enforce Funding Wallet for Withdrawals
           if (activeTab === 'TRADING') {
               showNotification('error', 'Please transfer funds to Funding Wallet before withdrawing.');
               return;
@@ -77,7 +72,7 @@ export const Assets: React.FC = () => {
 
   const openTransferModal = (asset?: string) => {
       if (asset) setSelectedAsset(asset);
-      setTransferFrom(activeTab); // Default to transferring OUT of current tab
+      setTransferFrom(activeTab);
       setModalType('TRANSFER');
   };
 

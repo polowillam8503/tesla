@@ -1,6 +1,5 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
-import { User, CoinData, NewsItem, CustomTokenConfig, Order, OrderType, TradeType, AssetBalance, AccountType, Transaction, Language, CandleData, MiningRig, SystemSettings, ChatMessage } from '../types';
+import { User, CoinData, NewsItem, CustomTokenConfig, Order, OrderType, TradeType, AccountType, Transaction, Language, CandleData, MiningRig, SystemSettings, ChatMessage } from '../types';
 import { translations } from '../services/i18n';
 import { supabase } from '../lib/supabase';
 
@@ -81,28 +80,28 @@ interface StoreContextType {
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
 const initialCustomToken: CustomTokenConfig = {
-  symbol: 'TESLA', name: 'Tesla Coin', price: 0.075, priceChangePercent: 5.24, supply: 100000000, volume24h: 5000000,
-  description: 'The official governance token of the Tesla Global Exchange ecosystem.', enabled: true,
+  symbol: 'TSLA', name: 'Tsla Coin', price: 124.50, priceChangePercent: 5.24, supply: 100000000, volume24h: 5000000,
+  description: 'The official governance token of the Tsla Global Exchange ecosystem.', enabled: true,
   contractAddress: '0x123...abc', minWithdraw: 10, feeRate: 0.001, logoUrl: 'https://via.placeholder.com/64/0ea5e9/ffffff?text=T'
 };
 
 const initialSystemSettings: SystemSettings = {
     telegram: 'https://t.me/tslaglobal', twitter: 'https://twitter.com/tslaglobal',
     discord: 'https://discord.gg/tsla', supportEmail: 'support@tsla-global.com',
-    announcementBar: 'Welcome to Tesla Global Exchange'
+    announcementBar: 'Welcome to Tsla Global Exchange'
 };
 
 const defaultRigs: MiningRig[] = [
-    { id: 'rig_1', name: 'AntMiner S9', hashrate: 15, cost: 5, dailyOutput: 5, purchasedDate: '' },
-    { id: 'rig_2', name: 'WhatsMiner M30', hashrate: 45, cost: 12, dailyOutput: 18, purchasedDate: '' },
-    { id: 'rig_3', name: 'AntMiner S19 Pro', hashrate: 110, cost: 35, dailyOutput: 50, purchasedDate: '' }
+    { id: 'rig_1', name: 'AntMiner S9', hashrate: 15, cost: 500, dailyOutput: 5, purchasedDate: '' },
+    { id: 'rig_2', name: 'WhatsMiner M30', hashrate: 45, cost: 1200, dailyOutput: 18, purchasedDate: '' },
+    { id: 'rig_3', name: 'AntMiner S19 Pro', hashrate: 110, cost: 3500, dailyOutput: 50, purchasedDate: '' }
 ];
 
 const coinIcons: Record<string, string> = {
     btc: 'https://assets.coingecko.com/coins/images/1/large/bitcoin.png',
     eth: 'https://assets.coingecko.com/coins/images/279/large/ethereum.png',
     usdt: 'https://assets.coingecko.com/coins/images/325/large/Tether.png',
-    tesla: 'https://via.placeholder.com/64/0ea5e9/ffffff?text=T'
+    tsla: 'https://via.placeholder.com/64/0ea5e9/ffffff?text=T'
 };
 
 const fallbackMarketData: CoinData[] = [
@@ -121,9 +120,8 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [news, setNews] = useState<NewsItem[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   
-  // Initialize Mining Rigs from LocalStorage to persist changes
   const [miningRigs, setMiningRigs] = useState<MiningRig[]>(() => {
-      const saved = localStorage.getItem('tesla_mining_rigs');
+      const saved = localStorage.getItem('tsla_mining_rigs');
       return saved ? JSON.parse(saved) : defaultRigs;
   });
 
@@ -135,14 +133,12 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [userOrders, setUserOrders] = useState<Order[]>([]);
   const [userTransactions, setUserTransactions] = useState<Transaction[]>([]);
 
-  // Persist Mining Rigs whenever they change
   useEffect(() => {
-      localStorage.setItem('tesla_mining_rigs', JSON.stringify(miningRigs));
+      localStorage.setItem('tsla_mining_rigs', JSON.stringify(miningRigs));
   }, [miningRigs]);
 
   const t = (key: string) => translations[language][key] || key;
 
-  // Price formatter helper
   const formatPrice = (price: number) => {
       if (price === 0 || price === null || price === undefined) return '0.00';
       if (price < 0.000001) return price.toFixed(10);
@@ -296,7 +292,6 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
      asset.amount -= amount;
      
-     // Update user balance first
      const { error } = await supabase.from('profiles').update({ funding_wallet: fundingWallet }).eq('id', userId);
      
      if (error) {
@@ -384,7 +379,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const mine = (_uid: string) => {}; 
   const boostHashrate = (_uid: string) => {}; 
   const buyRig = (userId: string, rig: MiningRig) => {
-      const user = currentUser; // Use current user directly since this runs client-side for immediate feedback
+      const user = currentUser; 
       if(!user) return false;
       
       const funding = Array.isArray(user.fundingWallet) ? [...user.fundingWallet] : [];
@@ -427,18 +422,13 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           const usdt = wallet.find(a => a.symbol === 'USDT');
           if (!usdt || usdt.amount < totalCost) { showNotification('error', 'Insufficient USDT in Trading Wallet'); return false; }
           usdt.amount -= totalCost;
-          // In simulation, we assume immediate fill for Market orders, so we don't freeze funds indefinitely
-          // For Limit orders, funds should technically be frozen.
-          // usdt.frozen = (usdt.frozen || 0) + totalCost; 
       } else {
           const coin = wallet.find(a => a.symbol === symbol);
           if (!coin || coin.amount < amount) { showNotification('error', `Insufficient ${symbol.toUpperCase()} in Trading Wallet`); return false; }
           coin.amount -= amount;
-          // coin.frozen = (coin.frozen || 0) + amount;
       }
 
-      // Simulate Immediate Fill if Market Order
-      const status = 'FILLED'; // Simplify to always fill for better UX demo unless we build a matching engine
+      const status = 'FILLED'; 
       
       if (status === 'FILLED') {
           if (type === OrderType.BUY) {
@@ -456,7 +446,6 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       setUserOrders(prev => [newOrder, ...prev]);
       await updateUser(currentUser.id, { tradingWallet: wallet });
       
-      // Add Transaction record for Asset History
       const txType = type === OrderType.BUY ? 'TRADE_BUY' : 'TRADE_SELL';
       const tx: Transaction = {
           id: Date.now().toString(),
@@ -512,10 +501,10 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           volume_24h: config.volume24h
       });
 
-      const localTokens = JSON.parse(localStorage.getItem('tesla_custom_tokens') || '[]');
+      const localTokens = JSON.parse(localStorage.getItem('tsla_custom_tokens') || '[]');
       const filtered = localTokens.filter((t: any) => t.symbol !== config.symbol);
       filtered.push(config);
-      localStorage.setItem('tesla_custom_tokens', JSON.stringify(filtered));
+      localStorage.setItem('tsla_custom_tokens', JSON.stringify(filtered));
 
       if(!error) { showNotification('success', 'Token Issued'); } 
       else { showNotification('success', 'Token Issued (Local Mode)'); }
@@ -525,9 +514,9 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   
   const deleteToken = async (symbol: string) => {
       await supabase.from('custom_tokens').delete().eq('symbol', symbol);
-      const localTokens = JSON.parse(localStorage.getItem('tesla_custom_tokens') || '[]');
+      const localTokens = JSON.parse(localStorage.getItem('tsla_custom_tokens') || '[]');
       const filtered = localTokens.filter((t: any) => t.symbol !== symbol);
-      localStorage.setItem('tesla_custom_tokens', JSON.stringify(filtered));
+      localStorage.setItem('tsla_custom_tokens', JSON.stringify(filtered));
       showNotification('success', 'Token Deleted'); 
       await refreshMarketData();
   };
@@ -540,9 +529,9 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       
       await supabase.from('custom_tokens').update(dbUpdate).eq('symbol', symbol);
       
-      const localTokens = JSON.parse(localStorage.getItem('tesla_custom_tokens') || '[]');
+      const localTokens = JSON.parse(localStorage.getItem('tsla_custom_tokens') || '[]');
       const updatedLocal = localTokens.map((t: any) => t.symbol === symbol ? {...t, ...config} : t);
-      localStorage.setItem('tesla_custom_tokens', JSON.stringify(updatedLocal));
+      localStorage.setItem('tsla_custom_tokens', JSON.stringify(updatedLocal));
 
       showNotification('success', 'Token Updated'); 
       await refreshMarketData();
@@ -554,7 +543,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const refreshMarketData = async () => {
-      const localTokens = JSON.parse(localStorage.getItem('tesla_custom_tokens') || '[]');
+      const localTokens = JSON.parse(localStorage.getItem('tsla_custom_tokens') || '[]');
       const { data: dbTokens } = await supabase.from('custom_tokens').select('*').order('created_at', { ascending: false });
       
       let mergedTokens: any[] = [];
@@ -649,7 +638,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       if(timeframe==='1D') iv=86400; 
       
       for(let i=0; i<100; i++) { 
-          const time = (now - (i*iv)); // Keep as number
+          const time = (now - (i*iv));
           const vol = current*0.015; 
           const close = current; 
           const open = current-(Math.random()-0.5)*vol; 

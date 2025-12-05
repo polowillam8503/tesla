@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
-import { Settings, Plus, Save, Users, AlertTriangle, Lock, Unlock, Trash2, Edit, Megaphone, Coins, LogOut, X, RefreshCw, Key, Wallet, Hammer, Activity } from 'lucide-react';
+import { Settings, Plus, Save, Users, AlertTriangle, Lock, Unlock, Trash2, Edit, Megaphone, Coins, LogOut, X, Key, Wallet, Hammer, Activity, RefreshCw } from 'lucide-react';
 import { User, CustomTokenConfig } from '../types';
 
 export const Admin: React.FC = () => {
-  const { currentUser, allUsers, customToken, issueNewToken, updateCustomToken, deleteToken, deployedTokens, addNews, updateUser, adminUpdateUserPassword, deleteUser, t, logout, systemSettings, updateSystemSettings, refreshMarketData, miningRigs, updateMiningRig, addRigToUser } = useStore();
+  const { currentUser, allUsers, customToken, issueNewToken, updateCustomToken, deleteToken, deployedTokens, addNews, updateUser, adminUpdateUserPassword, deleteUser, t, logout, systemSettings, updateSystemSettings, miningRigs, updateMiningRig, addRigToUser, refreshMarketData } = useStore();
   const [activeTab, setActiveTab] = useState<'USERS' | 'TOKEN' | 'MINING' | 'NEWS' | 'SETTINGS'>('USERS');
   
   const [newsTitle, setNewsTitle] = useState('');

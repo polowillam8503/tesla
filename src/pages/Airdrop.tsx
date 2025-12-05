@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../context/StoreContext';
 import { Zap, Hammer, Share2, Check, Lock, Unlock, ShoppingCart, Server, Database, Network, Copy } from 'lucide-react';
@@ -10,9 +9,6 @@ export const Airdrop: React.FC = () => {
     const [copied, setCopied] = useState(false);
     const [activeTab, setActiveTab] = useState<'MINING' | 'REFERRAL'>('MINING');
     
-    // Removed KYC Check
-    const hasKYC = true; // Always true now for eligibility logic, though UI might still show pending if strictly checking profile
-    
     // Safely check funding/trading wallets
     const hasDeposit = currentUser && Array.isArray(currentUser.fundingWallet) 
         ? currentUser.fundingWallet.some(a => (a.amount || 0) > 0) 
@@ -21,7 +17,7 @@ export const Airdrop: React.FC = () => {
         ? currentUser.tradingWallet.some(a => (a.amount || 0) > 0)
         : false;
         
-    const isEligible = hasDeposit && hasTrade; // Removed hasKYC from this check
+    const isEligible = hasDeposit && hasTrade;
 
     useEffect(() => {
         let interval: ReturnType<typeof setInterval>;
@@ -143,7 +139,6 @@ export const Airdrop: React.FC = () => {
                     <div className="space-y-3 mb-8">
                         <QuestItem label={t('quest_deposit')} done={hasDeposit} />
                         <QuestItem label={t('quest_trade')} done={hasTrade} />
-                        {/* KYC Removed from display requirement */}
                     </div>
                     <button onClick={handleClaim} disabled={!isEligible} className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3 transition-all ${isEligible ? 'bg-[#f0b90b] text-black hover:bg-[#d4a406] shadow-lg shadow-[#f0b90b]/20' : 'bg-[#2b3139] text-[#848e9c] cursor-not-allowed border border-white/5'}`}>{isEligible ? <Unlock size={20} /> : <Lock size={20} />}{isEligible ? t('airdrop_claim') : t('airdrop_locked')}</button>
                 </div>
