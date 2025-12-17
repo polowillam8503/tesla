@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, CoinData, NewsItem, CustomTokenConfig, Order, OrderType, TradeType, AccountType, Transaction, Language, CandleData, MiningRig, SystemSettings, ChatMessage } from '../types';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
+import { User, CoinData, NewsItem, CustomTokenConfig, Order, OrderType, TradeType, AssetBalance, AccountType, Transaction, Language, CandleData, MiningRig, SystemSettings, ChatMessage } from '../types';
 import { translations } from '../services/i18n';
 import { supabase } from '../lib/supabase';
 
@@ -75,6 +75,10 @@ interface StoreContextType {
   t: (key: string) => string;
   
   isLoading: boolean;
+  
+  // App Install Modal State
+  isInstallModalOpen: boolean;
+  setInstallModalOpen: (open: boolean) => void;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -133,6 +137,9 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   
   const [userOrders, setUserOrders] = useState<Order[]>([]);
   const [userTransactions, setUserTransactions] = useState<Transaction[]>([]);
+  
+  // New State for Install Modal
+  const [isInstallModalOpen, setInstallModalOpen] = useState(false);
 
   useEffect(() => {
       localStorage.setItem('tsla_mining_rigs', JSON.stringify(miningRigs));
@@ -669,7 +676,8 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       fetchPendingDeposits, approveDeposit, issueNewToken, deleteToken, deployedTokens, 
       miningRigs, updateMiningRig,
       chatMessages, sendChatMessage,
-      language, setLanguage, t, isLoading
+      language, setLanguage, t, isLoading,
+      isInstallModalOpen, setInstallModalOpen
     }}>
       {children}
     </StoreContext.Provider>

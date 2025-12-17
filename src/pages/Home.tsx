@@ -1,7 +1,6 @@
-
 import React, { useMemo, useState } from 'react';
 import { useStore } from '../context/StoreContext';
-import { ArrowUpRight, ArrowDownRight, TrendingUp, Shield, Zap, Flame, Clock, ChevronRight, ChevronLeft, Search, ArrowRight, Smartphone } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, TrendingUp, Shield, Zap, Flame, Clock, ChevronRight, ChevronLeft, Search, ArrowRight } from 'lucide-react';
 
 interface HomeProps {
   onNavigate: (page: string, params?: any) => void;
@@ -187,59 +186,6 @@ export const Home: React.FC<HomeProps> = ({ onNavigate }) => {
             </table>
           </div>
         </div>
-      </section>
-
-      {/* App Download Section */}
-      <section className="bg-[#181a20] py-16 px-6 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-[#0ea5e9]/10 rounded-full blur-[100px] pointer-events-none"></div>
-          <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center gap-12">
-              <div className="flex-1 text-center md:text-left z-10">
-                  <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">Trade Anytime, Anywhere</h2>
-                  <p className="text-[#848e9c] text-lg mb-8 max-w-lg mx-auto md:mx-0">
-                      Stay connected to the market with our powerful mobile app. Fast, secure, and intuitive trading experience in your pocket.
-                  </p>
-                  <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
-                      <a 
-                        href="/tsla-exchange.apk" 
-                        download 
-                        className="flex items-center gap-3 px-6 py-3 bg-[#0ea5e9] hover:bg-[#0284c7] text-white rounded-xl transition-all shadow-lg hover:shadow-xl hover:-translate-y-1"
-                      >
-                          <Smartphone size={24} />
-                          <div className="text-left">
-                              <div className="text-[10px] uppercase font-bold opacity-80">Download for</div>
-                              <div className="text-sm font-bold">Android APK</div>
-                          </div>
-                      </a>
-                      <a 
-                        href="#" 
-                        onClick={(e) => { e.preventDefault(); alert("iOS App is coming soon to the App Store!"); }}
-                        className="flex items-center gap-3 px-6 py-3 bg-[#2b3139] hover:bg-[#363c45] text-white rounded-xl transition-all hover:shadow-xl hover:-translate-y-1"
-                      >
-                          <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.21-1.96 1.07-3.11-1.05.05-2.31.71-3.06 1.61-.69.8-1.26 2-1.12 3.16 1.13.09 2.37-.84 3.11-1.66z"/></svg>
-                          <div className="text-left">
-                              <div className="text-[10px] uppercase font-bold opacity-80">Download on</div>
-                              <div className="text-sm font-bold">App Store</div>
-                          </div>
-                      </a>
-                  </div>
-              </div>
-              <div className="flex-1 flex justify-center z-10">
-                  <div className="relative w-64 h-[500px] bg-[#0b0e11] border-4 border-[#2b3139] rounded-[3rem] shadow-2xl overflow-hidden flex flex-col items-center">
-                      <div className="w-32 h-6 bg-[#181a20] rounded-b-xl mb-4"></div>
-                      <div className="flex-1 w-full px-4 pt-4">
-                          <div className="flex justify-between items-center mb-6">
-                              <div className="font-bold text-white">TSLA</div>
-                              <div className="w-8 h-8 bg-[#2b3139] rounded-full"></div>
-                          </div>
-                          <div className="text-3xl font-bold text-white mb-2">$124.50</div>
-                          <div className="text-[#0ecb81] font-bold mb-8">+5.24%</div>
-                          <div className="bg-[#0ea5e9] h-32 w-full rounded-2xl mb-4 opacity-20 animate-pulse"></div>
-                          <div className="bg-[#2b3139] h-12 w-full rounded-xl mb-2"></div>
-                          <div className="bg-[#2b3139] h-12 w-full rounded-xl"></div>
-                      </div>
-                  </div>
-              </div>
-          </div>
       </section>
 
        <section className="py-12 lg:py-20 bg-[#0b0e11]"><div className="max-w-7xl mx-auto px-6"><div className="text-center mb-10 lg:mb-16"><h2 className="text-2xl font-bold text-white mb-2">{t('partners')}</h2><div className="h-1 w-20 bg-[#0ea5e9] mx-auto rounded-full"></div></div><div className="flex flex-wrap justify-center gap-4 lg:gap-10"><PartnerLogo name="Ethereum" icon={PartnerLogos.ETH} /><PartnerLogo name="Binance Chain" icon={PartnerLogos.BSC} /><PartnerLogo name="Solana" icon={PartnerLogos.SOL} /><PartnerLogo name="Polygon" icon={PartnerLogos.MATIC} /><PartnerLogo name="Chainlink" icon={PartnerLogos.LINK} /></div></div></section>

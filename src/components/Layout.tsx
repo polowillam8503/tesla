@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../context/StoreContext';
-import { Menu as MenuIcon, LogOut, Globe, X, RefreshCw, User as UserIcon, AlertCircle, CheckCircle, Info, Twitter, Facebook, Instagram, ChevronDown, Activity, Zap, TrendingUp, Cpu, Gift, CreditCard, ChevronRight, MessageCircle, Mail, Shield } from 'lucide-react';
+import { Menu as MenuIcon, LogOut, Globe, X, RefreshCw, User as UserIcon, AlertCircle, CheckCircle, Info, Twitter, Facebook, Instagram, ChevronDown, Activity, Zap, TrendingUp, Cpu, Gift, CreditCard, ChevronRight, MessageCircle, Mail, Shield, Download, Smartphone, Share, PlusSquare, MoreVertical } from 'lucide-react';
 import { Language } from '../types';
 
 interface LayoutProps {
@@ -30,7 +30,7 @@ const NavDropdown: React.FC<{ label: string; active: boolean; items: { label: st
 };
 
 export const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate }) => {
-  const { currentUser, logout, language, setLanguage, t, notifications, removeNotification, login, register, sendVerificationCode, showNotification, systemSettings, chatMessages, sendChatMessage } = useStore();
+  const { currentUser, logout, language, setLanguage, t, notifications, removeNotification, login, register, sendVerificationCode, showNotification, systemSettings, chatMessages, sendChatMessage, isInstallModalOpen, setInstallModalOpen } = useStore();
   const [showLangMenu, setShowLangMenu] = useState(false); const [showUserMenu, setShowUserMenu] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState<'login' | 'signup' | null>(null); const [showMobileMenu, setShowMobileMenu] = useState(false); const [showChat, setShowChat] = useState(false);
   const langTimeoutRef = useRef<any>(null); const userTimeoutRef = useRef<any>(null);
@@ -93,6 +93,14 @@ export const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate
             </nav>
         </div>
         <div className="flex items-center gap-4 h-full">
+          <button 
+            onClick={() => setInstallModalOpen(true)}
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-[#2b3139] hover:bg-[#363c45] rounded-full text-white text-xs font-bold transition-all border border-white/5 hover:border-[#0ea5e9]/50"
+          >
+            <Download size={14} className="text-[#0ea5e9]" />
+            <span>App</span>
+          </button>
+
           <div className="relative h-full flex items-center" onMouseEnter={handleLangEnter} onMouseLeave={handleLangLeave}>
             <button className={`p-2 flex items-center gap-1 transition-colors ${showLangMenu ? 'text-[#0ea5e9]' : 'text-[#848e9c] hover:text-white'}`}><Globe size={18} /><span className="text-xs uppercase font-semibold hidden sm:inline">{language}</span></button>
             <div className={`absolute top-full right-0 w-full h-4 ${showLangMenu ? 'block' : 'hidden'}`} /><div className={`absolute top-[calc(100%+0px)] right-0 pt-0 transition-all duration-200 ${showLangMenu ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}><div className="w-40 bg-[#1e2329] border border-[#2b3139] rounded-lg shadow-2xl py-2 z-50">{languages.map(l => (<button key={l.code} onClick={() => { setLanguage(l.code); setShowLangMenu(false); }} className={`block w-full text-left px-4 py-2 text-sm hover:bg-white/5 transition-colors ${language === l.code ? 'text-[#0ea5e9] font-bold bg-white/5' : 'text-[#848e9c]'}`}>{l.label}</button>))}</div></div>
@@ -146,6 +154,35 @@ export const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate
           <div className="flex gap-4 mt-4 md:mt-0"><a href={systemSettings.twitter} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-[#848e9c] hover:bg-[#1DA1F2] hover:text-white transition-all"><Twitter size={16} /></a><a href="#" className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-[#848e9c] hover:bg-[#1877F2] hover:text-white transition-all"><Facebook size={16} /></a><a href="#" className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-[#848e9c] hover:bg-[#E4405F] hover:text-white transition-all"><Instagram size={16} /></a><div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-[#848e9c] hover:bg-[#0088cc] hover:text-white transition-all"><MessageCircle size={16} /></div><a href={`mailto:${systemSettings.supportEmail}`} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-[#848e9c] hover:bg-[#0ea5e9] hover:text-white transition-all"><Mail size={16} /></a></div>
       </div></div></footer>)}
       {showAuthModal && (<div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200"><div className="bg-[#1e2329] border border-[#2b3139] rounded-2xl shadow-2xl p-8 max-w-md w-full relative"><button onClick={() => setShowAuthModal(null)} className="absolute top-4 right-4 text-[#848e9c] hover:text-white"><X size={20} /></button><h2 className="text-2xl font-bold mb-1 text-center text-white">{showAuthModal === 'login' ? t('login_title') : t('signup')}</h2><p className="text-center text-[#848e9c] text-sm mb-6">Secure Access Portal</p><div className="space-y-4"><div><label className="block text-xs text-[#848e9c] mb-1 uppercase font-semibold">{t('email')}</label><input type="text" value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} className="w-full bg-[#0b0e11] border border-[#2b3139] rounded-lg p-3 text-white focus:border-[#0ea5e9] focus:outline-none transition-colors" placeholder="name@example.com" /></div><div><label className="block text-xs text-[#848e9c] mb-1 uppercase font-semibold">Password</label><input type="password" value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} className="w-full bg-[#0b0e11] border border-[#2b3139] rounded-lg p-3 text-white focus:border-[#0ea5e9] focus:outline-none transition-colors" placeholder="••••••••" /></div><div className="p-3 bg-[#0b0e11] rounded-lg border border-[#2b3139]"><div className="flex items-center justify-between mb-2"><span className="text-xs text-[#848e9c] uppercase font-semibold">Security Check</span><button onClick={drawCaptcha} className="text-[#0ea5e9] hover:text-white"><RefreshCw size={14} /></button></div><div className="flex gap-2"><canvas ref={canvasRef} width={150} height={50} className="bg-[#1e2329] rounded cursor-pointer" onClick={drawCaptcha} /><input type="text" value={captchaInput} onChange={(e) => setCaptchaInput(e.target.value)} className="flex-1 bg-[#1e2329] border border-[#2b3139] rounded p-2 text-white text-center tracking-widest uppercase font-bold focus:border-[#0ea5e9] outline-none" placeholder="CAPTCHA" /></div></div>{showAuthModal === 'signup' && (<div><label className="block text-xs text-[#848e9c] mb-1 uppercase font-semibold">{t('code')}</label><div className="flex gap-2"><input type="text" value={authCode} onChange={(e) => setAuthCode(e.target.value)} disabled={!codeSent} className={`flex-1 bg-[#0b0e11] border border-[#2b3139] rounded-lg p-3 text-white focus:border-[#0ea5e9] focus:outline-none transition-colors ${!codeSent ? 'opacity-50 cursor-not-allowed' : ''}`} placeholder="6-Digit Code" /><button onClick={handleSendCode} disabled={!isCaptchaValid || !authEmail || timer > 0} className={`px-4 font-medium rounded-lg text-sm transition-colors whitespace-nowrap min-w-[100px] ${isCaptchaValid && authEmail && timer === 0 ? 'bg-[#0ea5e9]/10 text-[#0ea5e9] hover:bg-[#0ea5e9] hover:text-white' : 'bg-[#2b3139] text-[#848e9c] cursor-not-allowed'}`}>{timer > 0 ? `${timer}s` : (codeSent ? 'Resend' : t('send_code'))}</button></div></div>)}<button onClick={handleAuth} disabled={showAuthModal === 'signup' ? (!codeSent || !authCode || !authPassword) : !authPassword} className={`w-full py-3 rounded-lg font-bold text-white transition-all shadow-lg mt-2 ${(showAuthModal === 'login' && authPassword) || (showAuthModal === 'signup' && codeSent && authCode && authPassword) ? 'bg-brand-600 hover:bg-brand-500 shadow-brand-500/20' : 'bg-[#2b3139] text-[#848e9c] cursor-not-allowed'}`}>{t('confirm')}</button></div></div></div>)}
+      
+      {/* Install App Modal - Now Global in Layout */}
+      {isInstallModalOpen && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+              <div className="bg-[#1e2329] border border-[#2b3139] rounded-2xl w-full max-w-md p-6 shadow-2xl relative">
+                  <button onClick={() => setInstallModalOpen(false)} className="absolute top-4 right-4 text-[#848e9c] hover:text-white"><X size={20}/></button>
+                  <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2"><Download size={20} className="text-[#0ea5e9]"/> Install App</h3>
+                  <p className="text-[#848e9c] text-sm mb-6">Install Tsla Global on your device for a native app experience. No download required.</p>
+                  
+                  <div className="space-y-4">
+                      <div className="bg-[#0b0e11] p-4 rounded-xl border border-white/5">
+                          <div className="flex items-center gap-2 text-white font-bold mb-2"><Smartphone size={16}/> iOS (Safari)</div>
+                          <div className="text-sm text-[#848e9c] flex items-center flex-wrap gap-1">
+                              Tap the <span className="text-white font-bold inline-flex items-center gap-1 bg-[#2b3139] px-1.5 py-0.5 rounded"><Share size={12}/> Share</span> button below your browser, then select <span className="text-white font-bold inline-flex items-center gap-1 bg-[#2b3139] px-1.5 py-0.5 rounded"><PlusSquare size={12}/> Add to Home Screen</span>.
+                          </div>
+                      </div>
+
+                      <div className="bg-[#0b0e11] p-4 rounded-xl border border-white/5">
+                          <div className="flex items-center gap-2 text-white font-bold mb-2"><Smartphone size={16}/> Android (Chrome)</div>
+                          <div className="text-sm text-[#848e9c] flex items-center flex-wrap gap-1">
+                              Tap the <span className="text-white font-bold inline-flex items-center gap-1 bg-[#2b3139] px-1.5 py-0.5 rounded"><MoreVertical size={12}/> Menu</span> button at the top right, then select <span className="text-white font-bold inline-flex items-center gap-1 bg-[#2b3139] px-1.5 py-0.5 rounded"><Download size={12}/> Install App</span>.
+                          </div>
+                      </div>
+                  </div>
+                  
+                  <button onClick={() => setInstallModalOpen(false)} className="w-full mt-6 py-3 bg-[#0ea5e9] rounded-lg text-white font-bold">Got it</button>
+              </div>
+          </div>
+      )}
     </div>
   );
 };
