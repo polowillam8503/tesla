@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { StoreProvider } from './context/StoreContext';
 import { Layout } from './components/Layout';
@@ -7,6 +8,7 @@ import { Assets } from './pages/Assets';
 import { Admin } from './pages/Admin';
 import { Airdrop } from './pages/Airdrop';
 import { UserCenter } from './pages/UserCenter';
+import { Whitepaper } from './pages/Whitepaper';
 
 const App: React.FC = () => {
   const [activePage, setActivePage] = useState('home');
@@ -31,6 +33,8 @@ const App: React.FC = () => {
         return <Airdrop />;
       case 'user_center':
         return <UserCenter />;
+      case 'whitepaper':
+        return <Whitepaper onBack={() => navigate('home')} />;
       default:
         return <Home onNavigate={navigate} />;
     }

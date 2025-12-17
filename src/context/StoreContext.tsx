@@ -79,10 +79,11 @@ interface StoreContextType {
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
+// Updated initialCustomToken to use /logo.png
 const initialCustomToken: CustomTokenConfig = {
   symbol: 'TSLA', name: 'Tsla Coin', price: 124.50, priceChangePercent: 5.24, supply: 100000000, volume24h: 5000000,
   description: 'The official governance token of the Tsla Global Exchange ecosystem.', enabled: true,
-  contractAddress: '0x123...abc', minWithdraw: 10, feeRate: 0.001, logoUrl: 'https://via.placeholder.com/64/0ea5e9/ffffff?text=T'
+  contractAddress: '0x123...abc', minWithdraw: 10, feeRate: 0.001, logoUrl: '/logo.png'
 };
 
 const initialSystemSettings: SystemSettings = {
@@ -101,7 +102,7 @@ const coinIcons: Record<string, string> = {
     btc: 'https://assets.coingecko.com/coins/images/1/large/bitcoin.png',
     eth: 'https://assets.coingecko.com/coins/images/279/large/ethereum.png',
     usdt: 'https://assets.coingecko.com/coins/images/325/large/Tether.png',
-    tsla: 'https://via.placeholder.com/64/0ea5e9/ffffff?text=T'
+    tsla: '/logo.png' // Updated map to use local logo
 };
 
 const fallbackMarketData: CoinData[] = [
