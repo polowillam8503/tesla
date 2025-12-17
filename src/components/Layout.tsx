@@ -47,11 +47,16 @@ export const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate
       if (success) setShowAuthModal(null);
   };
 
-  const languages: {code: Language, label: string}[] = [ { code: 'en', label: 'English' }, { code: 'zh', label: '简体中文' }, { code: 'ja', label: '日本語' }, { code: 'ko', label: '한국어' } ];
+  const languages: {code: Language, label: string}[] = [ 
+    { code: 'en', label: 'English' }, 
+    { code: 'zh', label: '简体中文' }, 
+    { code: 'ja', label: '日本語' }, 
+    { code: 'ko', label: '한국어' } 
+  ];
 
   return (
     <div className="min-h-screen bg-[#0b0e11] text-[#eaecef] flex flex-col font-sans relative selection:bg-[#0ea5e9]/30">
-      {/* Notifications */}
+      {/* Notification Area */}
       <div className="fixed top-24 right-6 z-[150] space-y-3 pointer-events-none">
          {notifications.map(n => (
            <div key={n.id} className="pointer-events-auto animate-in slide-in-from-right fade-in duration-300 flex items-center gap-3 p-4 bg-[#1e2329] border-l-4 rounded shadow-2xl min-w-[320px]" style={{ borderColor: n.type === 'success' ? '#0ecb81' : n.type === 'error' ? '#f6465d' : '#0ea5e9' }}>
@@ -62,7 +67,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate
          ))}
       </div>
 
-      {/* Header */}
       <header className="h-16 bg-[#181a20] border-b border-white/5 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-50">
         <div className="flex items-center gap-8">
             <div className="flex items-center gap-3 cursor-pointer group" onClick={() => onNavigate('home')}>
@@ -137,7 +141,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate
 
       <main className="flex-1 overflow-y-auto relative z-0">{children}</main>
 
-      {/* Floating Chat */}
+      {/* Floating Chat Widget */}
       <div className="fixed bottom-6 right-6 z-[100]">
         <button onClick={() => setShowChat(!showChat)} className="w-14 h-14 rounded-full bg-[#0ea5e9] text-white shadow-2xl flex items-center justify-center hover:scale-110 transition-all">
           {showChat ? <X size={24} /> : <MessageCircle size={28} />}
@@ -162,7 +166,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate
         )}
       </div>
 
-      {/* PWA Modal */}
+      {/* PWA Install Modal */}
       {isInstallModalOpen && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
               <div className="bg-[#1e2329] border border-[#2b3139] rounded-2xl w-full max-w-md p-6 shadow-2xl relative animate-in zoom-in-95 duration-200">
@@ -177,7 +181,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate
           </div>
       )}
 
-      {/* Footer */}
+      {/* Footer Area - RESTORED FULL PRODUCTION FOOTER */}
       {activePage !== 'trade' && (
         <footer className="bg-[#0b0e11] border-t border-white/5 pt-16 pb-8 shrink-0">
           <div className="max-w-7xl mx-auto px-6">

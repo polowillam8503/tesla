@@ -66,7 +66,6 @@ export interface User {
   isAdmin: boolean;
   isFrozen: boolean;
   kycLevel: number;
-  riskLevel?: 'LOW' | 'MEDIUM' | 'HIGH';
   fundingWallet: AssetBalance[];
   tradingWallet: AssetBalance[];
   miningBalance: number;
@@ -114,7 +113,6 @@ export interface CustomTokenConfig {
   volume24h: number;
   description: string;
   enabled: boolean;
-  logoUrl?: string;
 }
 
 export interface Transaction {
