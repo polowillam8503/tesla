@@ -1,3 +1,4 @@
+
 export type Language = 'en' | 'zh' | 'ja' | 'ko' | 'ru' | 'fr' | 'es';
 
 export interface CoinData {
