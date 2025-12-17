@@ -1,11 +1,8 @@
 
 import React from 'react';
-import { useStore } from '../context/StoreContext';
 import { FileText, ArrowLeft } from 'lucide-react';
 
 export const Whitepaper: React.FC<{ onBack: () => void }> = ({ onBack }) => {
-  const { t } = useStore();
-
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12">
       <div className="mb-8">

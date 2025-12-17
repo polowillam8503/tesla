@@ -1,7 +1,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { useStore } from '../context/StoreContext';
-import { ArrowUpRight, ArrowDownRight, TrendingUp, Shield, Zap, Flame, Clock, ChevronRight, ChevronLeft, Search, ArrowRight, Smartphone, Download } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, TrendingUp, Shield, Zap, Flame, Clock, ChevronRight, ChevronLeft, Search, ArrowRight, Smartphone } from 'lucide-react';
 
 interface HomeProps {
   onNavigate: (page: string, params?: any) => void;
@@ -189,7 +189,7 @@ export const Home: React.FC<HomeProps> = ({ onNavigate }) => {
         </div>
       </section>
 
-      {/* App Download Section - ADDED HERE */}
+      {/* App Download Section */}
       <section className="bg-[#181a20] py-16 px-6 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-96 h-96 bg-[#0ea5e9]/10 rounded-full blur-[100px] pointer-events-none"></div>
           <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center gap-12">
