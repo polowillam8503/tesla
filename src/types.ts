@@ -38,6 +38,7 @@ export interface NewsItem {
   summary: string;
   source: string;
   date: string;
+  isOfficial?: boolean;
 }
 
 export type AccountType = 'FUNDING' | 'TRADING';
@@ -54,6 +55,7 @@ export interface MiningRig {
   hashrate: number;
   cost: number;
   dailyOutput: number;
+  purchasedDate?: string;
 }
 
 export interface ChatMessage {
@@ -81,6 +83,7 @@ export interface User {
   externalWalletAddress?: string;
   lastLogin: string;
   registerDate: string;
+  feeRate?: number;
 }
 
 export enum OrderType { BUY = 'BUY', SELL = 'SELL' }
@@ -111,6 +114,8 @@ export interface CustomTokenConfig {
   enabled: boolean;
   logoUrl?: string;
   contractAddress?: string;
+  minWithdraw?: number;
+  feeRate?: number;
 }
 
 export interface Transaction {
@@ -121,6 +126,7 @@ export interface Transaction {
   amount: number;
   status: 'COMPLETED' | 'PENDING' | 'FAILED';
   date: string;
+  price?: number;
 }
 
 export interface SystemSettings {

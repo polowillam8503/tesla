@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useStore } from '../context/StoreContext';
-import { OrderType, TradeType } from '../types';
+import { OrderType, TradeType, CoinData } from '../types';
 import { createChart, ColorType, CrosshairMode } from 'lightweight-charts';
 import { ChevronDown, Search, Info, X, ArrowUp, ArrowDown, BarChart2, List, Clock, Zap, Settings, Activity } from 'lucide-react';
 
@@ -13,22 +14,34 @@ export const Trade: React.FC<{ defaultCoinId?: string }> = ({ defaultCoinId }) =
   const [amount, setAmount] = useState<string>('');
   const [leverage, setLeverage] = useState(20);
   const [historyTab, setHistoryTab] = useState<'OPEN' | 'POSITIONS' | 'TRADES'>('OPEN');
+  const [showCoinSelector, setShowCoinSelector] = useState(false);
+  const [searchCoin, setSearchCoin] = useState('');
   
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartInstance = useRef<any>(null);
 
-  // Fix: Added missing 'id' property to the fallback object to match CoinData type
-  const coin = marketData.find(c => c.id === selectedCoinId) || marketData[0] || { id: 'bitcoin', symbol: 'BTC', current_price: 64000, price_change_percentage_24h: 0, image: '' };
+  const coin = useMemo(() => {
+    return marketData.find(c => c.id === selectedCoinId) || marketData[0] || ({ 
+        id: 'bitcoin', 
+        symbol: 'BTC', 
+        current_price: 64000, 
+        price_change_percentage_24h: 0, 
+        image: '',
+        name: 'Bitcoin'
+    } as CoinData);
+  }, [marketData, selectedCoinId]);
 
   useEffect(() => {
       if (coin.current_price) setPrice(coin.current_price.toString());
-  }, [coin.id]);
+  }, [coin.id, coin.current_price]);
 
   useEffect(() => {
     if (!chartContainerRef.current || !coin.id) return;
-    if (chartInstance.current) chartInstance.current.remove();
+    if (chartInstance.current) {
+        chartInstance.current.remove();
+        chartInstance.current = null;
+    }
 
-    // Fix: Cast createChart to any to allow access to addCandlestickSeries if library types are incomplete
     const chart = createChart(chartContainerRef.current, {
         layout: { background: { type: ColorType.Solid, color: '#161a1e' }, textColor: '#848e9c' },
         grid: { vertLines: { color: 'rgba(255,255,255,0.05)' }, horzLines: { color: 'rgba(255,255,255,0.05)' } },
@@ -54,29 +67,85 @@ export const Trade: React.FC<{ defaultCoinId?: string }> = ({ defaultCoinId }) =
         close: coin.current_price
     })));
 
-    return () => chart.remove();
-  }, [coin.id]);
+    const handleResize = () => {
+        if(chartContainerRef.current && chartInstance.current) {
+            chartInstance.current.applyOptions({ 
+                width: chartContainerRef.current.clientWidth, 
+                height: chartContainerRef.current.clientHeight 
+            });
+        }
+    };
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+        window.removeEventListener('resize', handleResize);
+        if (chartInstance.current) {
+            chartInstance.current.remove();
+            chartInstance.current = null;
+        }
+    };
+  }, [coin.id, coin.current_price]);
 
   const handleTrade = () => {
       const p = parseFloat(price); const a = parseFloat(amount);
       if (p > 0 && a > 0) placeOrder(coin.symbol, orderType, tradeMode, p, a, leverage);
   };
 
+  const isBuy = orderType === OrderType.BUY;
+  const btnColor = isBuy ? 'bg-[#0ecb81]' : 'bg-[#f6465d]';
+  const btnHover = isBuy ? 'hover:bg-[#0aa869]' : 'hover:bg-[#d9304e]';
+
   return (
     <div className="flex flex-col h-[calc(100vh-64px)] bg-[#0b0e11] overflow-hidden">
-      {/* Header */}
-      <div className="h-14 bg-[#181a20] border-b border-white/5 flex items-center px-6 gap-8 shrink-0">
-          <div className="flex items-center gap-2 font-bold text-xl text-white">
-              <img src={coin.image} className="w-6 h-6 rounded-full" />
-              {coin.symbol?.toUpperCase()}/USDT
+      {/* Header Bar */}
+      <div className="h-14 bg-[#181a20] border-b border-white/5 flex items-center px-6 gap-8 shrink-0 relative z-40">
+          <div className="flex items-center gap-4">
+              <div className="relative">
+                  <button 
+                    onClick={() => setShowCoinSelector(!showCoinSelector)}
+                    className="flex items-center gap-2 font-bold text-xl text-white hover:text-[#0ea5e9] transition-colors"
+                  >
+                      <img src={coin.image} className="w-6 h-6 rounded-full" onError={(e:any)=>e.target.src='https://via.placeholder.com/32'} />
+                      {coin.symbol?.toUpperCase()}/USDT
+                      <ChevronDown size={16} />
+                  </button>
+                  {showCoinSelector && (
+                      <div className="absolute top-full left-0 mt-2 w-72 bg-[#1e2329] border border-white/10 rounded-lg shadow-2xl z-50 flex flex-col max-h-[500px]">
+                          <div className="p-3 border-b border-white/5">
+                              <div className="relative">
+                                  <Search size={14} className="absolute left-3 top-2.5 text-[#848e9c]" />
+                                  <input 
+                                      autoFocus
+                                      type="text" 
+                                      placeholder={t('search_coin')} 
+                                      value={searchCoin}
+                                      onChange={(e) => setSearchCoin(e.target.value)}
+                                      className="w-full bg-[#0b0e11] border border-[#2b3139] rounded px-3 pl-9 py-2 text-xs outline-none text-white"
+                                  />
+                              </div>
+                          </div>
+                          <div className="flex-1 overflow-y-auto custom-scrollbar">
+                              {marketData.filter(c => c.symbol.toLowerCase().includes(searchCoin.toLowerCase()) || c.name.toLowerCase().includes(searchCoin.toLowerCase())).map(c => (
+                                  <button key={c.id} onClick={() => { setSelectedCoinId(c.id); setShowCoinSelector(false); }} className={`w-full flex items-center justify-between px-4 py-2 hover:bg-white/5 ${selectedCoinId === c.id ? 'bg-white/5 border-l-2 border-[#0ea5e9]' : ''}`}>
+                                      <div className="flex items-center gap-2 font-bold text-white text-sm">
+                                          <span>{c.symbol.toUpperCase()}</span>
+                                          <span className="text-[#848e9c] text-xs font-normal">/ USDT</span>
+                                      </div>
+                                      <span className={`text-xs ${c.price_change_percentage_24h >= 0 ? 'text-[#0ecb81]' : 'text-[#f6465d]'}`}>{c.price_change_percentage_24h?.toFixed(2)}%</span>
+                                  </button>
+                              ))}
+                          </div>
+                      </div>
+                  )}
+              </div>
           </div>
           <div className="flex gap-6 text-sm">
               <div className="flex flex-col">
-                  <span className="text-[#848e9c] text-[10px] uppercase">Mark Price</span>
+                  <span className="text-[#848e9c] text-[10px] uppercase font-bold">Mark Price</span>
                   <span className={`font-mono font-bold ${coin.price_change_percentage_24h >= 0 ? 'text-[#0ecb81]' : 'text-[#f6465d]'}`}>{formatPrice(coin.current_price)}</span>
               </div>
               <div className="flex flex-col">
-                  <span className="text-[#848e9c] text-[10px] uppercase">24h Change</span>
+                  <span className="text-[#848e9c] text-[10px] uppercase font-bold">24h Change</span>
                   <span className={`font-mono ${coin.price_change_percentage_24h >= 0 ? 'text-[#0ecb81]' : 'text-[#f6465d]'}`}>{coin.price_change_percentage_24h?.toFixed(2)}%</span>
               </div>
           </div>
@@ -174,7 +243,7 @@ export const Trade: React.FC<{ defaultCoinId?: string }> = ({ defaultCoinId }) =
                       <label className="text-[10px] font-bold text-[#848e9c] uppercase mb-1 block">Amount ({coin.symbol})</label>
                       <input type="number" value={amount} onChange={e => setAmount(e.target.value)} className="w-full bg-[#0b0e11] border border-white/10 p-3 rounded-xl text-white outline-none focus:border-[#0ea5e9] font-mono" />
                   </div>
-                  <button onClick={handleTrade} className={`w-full py-4 rounded-xl font-bold text-white transition-all transform active:scale-95 ${orderType === OrderType.BUY ? 'bg-[#0ecb81]' : 'bg-[#f6465d]'}`}>
+                  <button onClick={handleTrade} className={`w-full py-4 rounded-xl font-bold text-white transition-all transform active:scale-95 ${btnColor} ${btnHover}`}>
                       {orderType === OrderType.BUY ? 'Buy' : 'Sell'} {coin.symbol}
                   </button>
               </div>

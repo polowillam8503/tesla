@@ -48,8 +48,9 @@ interface StoreContextType {
   
   deposit: (userId: string, symbol: string, amount: number) => Promise<void>;
   withdraw: (userId: string, symbol: string, amount: number, address: string) => Promise<boolean>;
-  // Fix: Added missing context properties
+  
   miningRigs: MiningRig[];
+  updateMiningRig: (rigId: string, updates: Partial<MiningRig>) => void;
   isInstallModalOpen: boolean;
   setInstallModalOpen: (open: boolean) => void;
   transfer: (userId: string, symbol: string, amount: number, from: AccountType, to: AccountType) => Promise<boolean>;
@@ -81,6 +82,7 @@ const StoreContext = createContext<StoreContextType | undefined>(undefined);
 const initialCustomToken: CustomTokenConfig = {
   symbol: 'TSLA', name: 'Tsla Coin', price: 124.50, priceChangePercent: 5.24, supply: 100000000,
   description: 'The official governance token of the Tsla Global Exchange ecosystem.', enabled: true,
+  contractAddress: '0x123...abc', minWithdraw: 10, feeRate: 0.001, logoUrl: 'https://via.placeholder.com/64/0ea5e9/ffffff?text=T'
 };
 
 const initialSystemSettings: SystemSettings = {
@@ -95,17 +97,22 @@ const coinIcons: Record<string, string> = {
     usdt: 'https://assets.coingecko.com/coins/images/325/large/Tether.png',
 };
 
-// Fix: Static list of available mining rigs
 const initialMiningRigs: MiningRig[] = [
     { id: 'rig_1', name: 'AntMiner S9', hashrate: 15, cost: 500, dailyOutput: 5 },
     { id: 'rig_2', name: 'WhatsMiner M30', hashrate: 45, cost: 1200, dailyOutput: 18 },
     { id: 'rig_3', name: 'AntMiner S19 Pro', hashrate: 110, cost: 3500, dailyOutput: 50 }
 ];
 
+const fallbackMarketData: CoinData[] = [
+  { id: 'bitcoin', symbol: 'btc', name: 'Bitcoin', image: coinIcons.btc, current_price: 64230.50, market_cap: 1200000000000, market_cap_rank: 1, fully_diluted_valuation: null, total_volume: 35000000000, high_24h: 65100, low_24h: 63800, price_change_24h: 1234.56, price_change_percentage_24h: 1.85, circulating_supply: 19000000, total_supply: 21000000, max_supply: 21000000, ath: 73700, atl: 65, isCustom: false },
+  { id: 'ethereum', symbol: 'eth', name: 'Ethereum', image: coinIcons.eth, current_price: 3450.78, market_cap: 400000000000, market_cap_rank: 2, fully_diluted_valuation: null, total_volume: 15000000000, high_24h: 3520, low_24h: 3380, price_change_24h: -45.67, price_change_percentage_24h: -1.2, circulating_supply: 120000000, total_supply: 120000000, max_supply: null, ath: 4800, atl: 0.4, isCustom: false },
+  { id: 'tether', symbol: 'usdt', name: 'Tether', image: coinIcons.usdt, current_price: 1.00, market_cap: 103000000000, market_cap_rank: 3, fully_diluted_valuation: null, total_volume: 50000000000, high_24h: 1.001, low_24h: 0.999, price_change_24h: 0.00, price_change_percentage_24h: 0.00, circulating_supply: 103000000000, total_supply: 103000000000, max_supply: null, ath: 1.01, atl: 0.99, isCustom: false },
+];
+
 export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [allUsers, setAllUsers] = useState<User[]>([]);
-  const [marketData, setMarketData] = useState<CoinData[]>([]);
+  const [marketData, setMarketData] = useState<CoinData[]>(fallbackMarketData);
   const [deployedTokens, setDeployedTokens] = useState<CustomTokenConfig[]>([]);
   const [customToken, setCustomToken] = useState<CustomTokenConfig>(initialCustomToken);
   const [news, setNews] = useState<NewsItem[]>([]);
@@ -116,8 +123,8 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [userOrders, setUserOrders] = useState<Order[]>([]);
   const [userTransactions, setUserTransactions] = useState<Transaction[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  // Fix: Added missing states
   const [isInstallModalOpen, setInstallModalOpen] = useState(false);
+  const [miningRigs, setMiningRigs] = useState<MiningRig[]>(initialMiningRigs);
 
   const t = (key: string) => translations[language][key] || key;
   const formatPrice = (p: number) => p < 1 ? p.toFixed(8) : p.toLocaleString(undefined, { minimumFractionDigits: 2 });
@@ -163,8 +170,10 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const fetchAllUsers = async () => {
-      const { data } = await supabase.from('profiles').select('*');
-      if (data) setAllUsers(data.map(mapProfileToUser));
+      try {
+        const { data } = await supabase.from('profiles').select('*');
+        if (data) setAllUsers(data.map(mapProfileToUser));
+      } catch (e) { console.error(e); }
   };
 
   useEffect(() => {
@@ -215,7 +224,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                   image: t.logo_url || `https://via.placeholder.com/64/0ea5e9/ffffff?text=${t.symbol[0]}`,
                   current_price: Number(t.price), market_cap: Number(t.price) * Number(t.supply), market_cap_rank: 999, fully_diluted_valuation: null,
                   total_volume: 50000000, high_24h: Number(t.price) * 1.02, low_24h: Number(t.price) * 0.98,
-                  price_change_24h: Number(t.price) * (Number(t.price_change_percent) / 100), price_change_percentage_24h: Number(t.price_change_percent),
+                  price_change_24h: Number(t.price) * (Number(t.price_change_percent) / 100), price_change_percentage_24h: Number(t.price_change_percentage_24h),
                   circulating_supply: Number(t.supply), total_supply: Number(t.supply), max_supply: Number(t.supply),
                   ath: Number(t.price), atl: Number(t.price), sparkline_in_7d: { price: Array(168).fill(Number(t.price)) }, isCustom: true
               };
@@ -263,6 +272,18 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           const asset = wallet.find(a => a.symbol === order.symbol);
           if (asset) { asset.frozen = Math.max(0, (asset.frozen || 0) - order.amount); asset.amount += order.amount; }
       }
+      
+      const tx: Transaction = {
+          id: Date.now().toString(),
+          userId: currentUser.id,
+          type: 'ORDER_CANCEL',
+          symbol: order.type === OrderType.BUY ? 'USDT' : order.symbol,
+          amount: order.type === OrderType.BUY ? order.total : order.amount,
+          status: 'COMPLETED',
+          date: new Date().toISOString()
+      };
+      
+      setUserTransactions(prev => [tx, ...prev]);
       setUserOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'CANCELLED' } : o));
       await supabase.from('profiles').update({ trading_wallet: wallet }).eq('id', currentUser.id);
       showNotification('success', 'Order Cancelled');
@@ -294,24 +315,37 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const issueNewToken = async (config: CustomTokenConfig) => {
-      const { error } = await supabase.from('custom_tokens').insert({
-          symbol: config.symbol.toUpperCase(), name: config.name, price: config.price, supply: config.supply, logo_url: config.logoUrl, description: config.description, price_change_percent: config.priceChangePercent
-      });
+      const cleanConfig = {
+          symbol: config.symbol.toUpperCase(), 
+          name: config.name, 
+          price: config.price, 
+          supply: config.supply, 
+          logo_url: config.logoUrl || '', 
+          description: config.description || '', 
+          price_change_percent: config.priceChangePercent || 0
+      };
+      const { error } = await supabase.from('custom_tokens').insert(cleanConfig);
       if (!error) { showNotification('success', 'Token Issued'); refreshMarketData(); }
+      else showNotification('error', 'Token Issue Failed');
+  };
+
+  const updateMiningRig = (rigId: string, updates: Partial<MiningRig>) => {
+      setMiningRigs(prev => prev.map(r => r.id === rigId ? { ...r, ...updates } : r));
+      showNotification('success', 'Rig Config Updated');
   };
 
   const sendChatMessage = (text: string) => {
       setChatMessages(prev => [...prev, { id: Date.now().toString(), text, sender: 'USER', timestamp: Date.now() }]);
   };
 
+  // Add mining rig update logic and other missing properties to the context value
   return (
     <StoreContext.Provider value={{
       currentUser, allUsers, login, register, logout, sendVerificationCode: async () => true, bindExternalWallet: () => {}, verifyKYC: () => {}, toggle2FA: () => {},
       notifications, showNotification, removeNotification, marketData, candleData: {}, refreshMarketData, generateCandles: () => [],
       customToken, deployedTokens, updateCustomToken: async () => {}, issueNewToken, deleteToken: async () => {}, news, addNews: () => {}, systemSettings, updateSystemSettings: () => {},
       placeOrder, userOrders, userTransactions, cancelOrder, deposit: async () => {}, withdraw, 
-      // Fix: Provided missing state values
-      miningRigs: initialMiningRigs, isInstallModalOpen, setInstallModalOpen,
+      miningRigs, updateMiningRig, isInstallModalOpen, setInstallModalOpen,
       transfer, mine: () => {}, boostHashrate: () => {}, buyRig: () => true, addRigToUser: () => {}, claimAirdrop: () => true,
       updateUser: () => {}, adminUpdateUserPassword: async () => {}, deleteUser: () => {}, fetchPendingDeposits: async () => [], approveDeposit: async () => {},
       language, setLanguage, t, formatPrice, isLoading,
