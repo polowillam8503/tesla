@@ -1,4 +1,3 @@
-
 export type Language = 'en' | 'zh' | 'ja' | 'ko' | 'ru' | 'fr' | 'es';
 
 export interface CoinData {
@@ -25,12 +24,11 @@ export interface CoinData {
 }
 
 export interface CandleData {
-  time: number | string;
+  time: number;
   open: number;
   high: number;
   low: number;
   close: number;
-  volume: number;
 }
 
 export interface NewsItem {
@@ -39,8 +37,6 @@ export interface NewsItem {
   summary: string;
   source: string;
   date: string;
-  url?: string;
-  isOfficial?: boolean;
 }
 
 export type AccountType = 'FUNDING' | 'TRADING';
@@ -57,7 +53,6 @@ export interface MiningRig {
   hashrate: number;
   cost: number;
   dailyOutput: number;
-  purchasedDate: string;
 }
 
 export interface User {
@@ -74,20 +69,14 @@ export interface User {
   inviteCode: string;
   referralCount: number;
   referralEarnings: number;
+  externalWalletAddress?: string;
+  // Added missing fields used in context/StoreContext.tsx
   lastLogin: string;
   registerDate: string;
-  externalWalletAddress?: string;
 }
 
-export enum OrderType {
-  BUY = 'BUY',
-  SELL = 'SELL'
-}
-
-export enum TradeType {
-  SPOT = 'SPOT',
-  FUTURES = 'FUTURES'
-}
+export enum OrderType { BUY = 'BUY', SELL = 'SELL' }
+export enum TradeType { SPOT = 'SPOT', FUTURES = 'FUTURES' }
 
 export interface Order {
   id: string;
@@ -97,7 +86,6 @@ export interface Order {
   tradeType: TradeType;
   priceType: 'LIMIT' | 'MARKET' | 'STOP';
   price: number;
-  triggerPrice?: number;
   amount: number;
   total: number;
   timestamp: number;
@@ -113,30 +101,27 @@ export interface CustomTokenConfig {
   volume24h: number;
   description: string;
   enabled: boolean;
+  // Added missing fields used in context/StoreContext.tsx
+  contractAddress?: string;
+  minWithdraw?: number;
+  feeRate?: number;
+  logoUrl?: string;
 }
 
 export interface Transaction {
   id: string;
   userId: string;
-  type: 'DEPOSIT' | 'WITHDRAW' | 'TRANSFER' | 'TRADE_BUY' | 'TRADE_SELL' | 'MINING' | 'RIG_PURCHASE';
+  // Added ADMIN_ADJUST to valid types
+  type: 'DEPOSIT' | 'WITHDRAW' | 'TRANSFER' | 'TRADE_BUY' | 'TRADE_SELL' | 'MINING' | 'ADMIN_ADJUST';
   symbol: string;
   amount: number;
-  status: 'COMPLETED' | 'PENDING' | 'FAILED';
   date: string;
-}
-
-export interface ChatMessage {
-    user: string;
-    text: string;
-    time: string;
-    isAdmin: boolean;
-    user_id?: string;
-    created_at?: string;
 }
 
 export interface SystemSettings {
     telegram: string;
     twitter: string;
+    // Added missing field used in context/StoreContext.tsx
     discord: string;
     supportEmail: string;
     announcementBar: string;

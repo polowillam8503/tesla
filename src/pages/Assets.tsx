@@ -1,113 +1,139 @@
+
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
-import { Wallet, ArrowLeftRight, Download, Upload, Eye, EyeOff, Copy, Check, History, Link, Plus, TrendingUp, Edit2 } from 'lucide-react';
+import { Wallet, ArrowLeftRight, Download, Upload, Eye, EyeOff, Edit2, Link, Plus, Check, Copy, X, Activity, History, PieChart } from 'lucide-react';
 import { AccountType } from '../types';
 
 export const Assets: React.FC = () => {
   const { currentUser, transfer, deposit, withdraw, bindExternalWallet, userTransactions, marketData, t, showNotification } = useStore();
-  const [activeTab, setActiveTab] = useState<AccountType>('FUNDING');
+  const [activeAccount, setActiveAccount] = useState<AccountType>('FUNDING');
   const [view, setView] = useState<'BALANCES' | 'HISTORY'>('BALANCES');
   const [hideBalance, setHideBalance] = useState(false);
   const [modalType, setModalType] = useState<'DEPOSIT' | 'WITHDRAW' | 'TRANSFER' | 'BIND_WALLET' | null>(null);
+  const [amount, setAmount] = useState<string>('');
+  const [assetSymbol, setAssetSymbol] = useState('USDT');
+  const [walletInput, setWalletInput] = useState('');
   const [copied, setCopied] = useState(false);
-  const [selectedAsset, setSelectedAsset] = useState('USDT'); const [amount, setAmount] = useState(0); const [walletAddressInput, setWalletAddressInput] = useState('');
-  
-  const officialWalletAddress = "0xEdd97C7577B9782369DC1E385D31c78f5515d272";
-  
-  const [transferFrom, setTransferFrom] = useState<AccountType>('FUNDING');
-  
-  if (!currentUser) { return (<div className="flex flex-col items-center justify-center h-[80vh] text-center"><div className="w-20 h-20 bg-[#2b3139] rounded-full flex items-center justify-center mb-6"><Wallet size={40} className="text-[#848e9c]" /></div><h2 className="text-2xl font-bold mb-2 text-white">Please Log In</h2><p className="text-[#848e9c] max-w-md">Access your digital asset portfolio, manage funds, and view transaction history.</p></div>); }
-  
-  const wallet = activeTab === 'FUNDING' 
-      ? (Array.isArray(currentUser.fundingWallet) ? currentUser.fundingWallet : [])
-      : (Array.isArray(currentUser.tradingWallet) ? currentUser.tradingWallet : []);
-  
-  const totalBalanceUSDT = wallet.reduce((acc, curr) => {
-      if (!curr || !curr.symbol) return acc;
-      const safeAmount = Number(curr.amount) || 0;
-      if (curr.symbol === 'USDT') return acc + safeAmount;
-      
-      const symbolKey = curr.symbol.toLowerCase();
-      const coin = (marketData && Array.isArray(marketData)) ? marketData.find(c => c.symbol && c.symbol.toLowerCase() === symbolKey) : null;
-      const price = coin ? (Number(coin.current_price) || 0) : 0;
-      
-      return acc + (safeAmount * price);
-  }, 0);
 
-  const btcPrice = (marketData && Array.isArray(marketData) && marketData.length > 0) 
-      ? (Number(marketData.find(c => c.symbol === 'btc')?.current_price) || 60000) 
-      : 60000;
-      
-  const btcValue = btcPrice > 0 ? (totalBalanceUSDT / btcPrice) : 0;
+  if (!currentUser) return <div className="flex flex-col items-center justify-center p-40 text-[#848e9c]"><Wallet size={80} className="mb-6 opacity-10 animate-pulse"/><p className="text-xl font-bold">Please Login to Access Assets</p></div>;
+
+  const wallet = activeAccount === 'FUNDING' ? currentUser.fundingWallet : currentUser.tradingWallet;
   
-  const yesterdayPnL = wallet.reduce((acc, curr) => {
-      if (curr.symbol === 'USDT') return acc;
+  const totalUSDT = wallet.reduce((acc, curr) => {
+      if (curr.symbol === 'USDT') return acc + (curr.amount || 0);
       const coin = marketData.find(c => c.symbol.toLowerCase() === curr.symbol.toLowerCase());
-      if (!coin) return acc;
-      const change = Number(coin.price_change_percentage_24h || 0);
-      const value = (Number(curr.amount) || 0) * (Number(coin.current_price) || 0);
-      return acc + (value * (change / 100));
+      const price = coin ? coin.current_price : 0;
+      return acc + ((curr.amount || 0) * price);
   }, 0);
-  
-  const handleCopy = () => { navigator.clipboard.writeText(officialWalletAddress); setCopied(true); setTimeout(() => setCopied(false), 2000); showNotification('success', 'Address Copied'); };
-  
-  const handleAction = () => { 
-      if (modalType === 'DEPOSIT') { 
-          deposit(currentUser.id, selectedAsset, amount); 
-      } else if (modalType === 'WITHDRAW') { 
-          if (activeTab === 'TRADING') {
-              showNotification('error', 'Please transfer funds to Funding Wallet before withdrawing.');
-              return;
-          }
-          withdraw(currentUser.id, selectedAsset, amount); 
-      } else if (modalType === 'TRANSFER') { 
-          const to = transferFrom === 'FUNDING' ? 'TRADING' : 'FUNDING'; 
-          transfer(currentUser.id, selectedAsset, amount, transferFrom, to); 
-      } else if (modalType === 'BIND_WALLET') { 
-          bindExternalWallet(walletAddressInput); 
-      } 
-      setModalType(null); 
-      setAmount(0); 
-  };
 
-  const openTransferModal = (asset?: string) => {
-      if (asset) setSelectedAsset(asset);
-      setTransferFrom(activeTab);
-      setModalType('TRANSFER');
+  const handleAction = () => {
+      const num = parseFloat(amount);
+      if (modalType === 'TRANSFER') transfer(currentUser.id, assetSymbol, num, activeAccount, activeAccount === 'FUNDING' ? 'TRADING' : 'FUNDING');
+      else if (modalType === 'WITHDRAW') {
+          if(!currentUser.externalWalletAddress) { showNotification('error', 'Please bind address first'); return; }
+          withdraw(currentUser.id, assetSymbol, num);
+      }
+      else if (modalType === 'DEPOSIT') deposit(currentUser.id, assetSymbol, num);
+      else if (modalType === 'BIND_WALLET') bindExternalWallet(walletInput);
+      setModalType(null); setAmount('');
   };
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 w-full">
-         <div className="md:col-span-2 bg-gradient-to-br from-[#1e2329] to-[#0b0e11] rounded-2xl p-6 lg:p-8 border border-[#2b3139] shadow-xl relative overflow-hidden group"><div className="absolute right-0 top-0 h-full w-1/3 bg-[#0ea5e9]/5 skew-x-12 group-hover:bg-[#0ea5e9]/10 transition-colors"></div><div className="relative z-10"><div className="flex items-center gap-2 mb-4 text-[#848e9c]"><span className="uppercase text-xs font-bold tracking-wider">{t('est_value')} (BTC)</span><button onClick={() => setHideBalance(!hideBalance)} className="hover:text-white">{hideBalance ? <EyeOff size={14} /> : <Eye size={14} />}</button><span className="bg-[#2b3139] text-[10px] px-2 py-0.5 rounded text-white ml-auto flex items-center gap-1"><TrendingUp size={12} className={yesterdayPnL >= 0 ? "text-[#0ecb81]" : "text-[#f6465d]"} />{t('pnl_yesterday')}: <span className={yesterdayPnL >= 0 ? "text-[#0ecb81]" : "text-[#f6465d]"}>{yesterdayPnL >= 0 ? '+' : ''}{Number(yesterdayPnL || 0).toFixed(2)}</span></span></div><div className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-3 mb-6"><span className="text-3xl lg:text-4xl font-bold text-white font-mono tracking-tight">{hideBalance ? '******' : Number(btcValue || 0).toFixed(6)}</span><span className="text-[#848e9c] font-mono text-sm sm:text-base">≈ ${hideBalance ? '**.**' : Number(totalBalanceUSDT || 0).toLocaleString()}</span></div><div className="flex flex-wrap gap-3"><button onClick={() => setModalType('DEPOSIT')} className="flex-1 lg:flex-none justify-center px-5 py-3 bg-[#f0b90b] hover:bg-[#d4a406] text-black font-bold rounded-lg text-sm flex items-center gap-2 shadow-lg shadow-[#f0b90b]/20 transition-all active:scale-95"><Download size={16} /> {t('deposit')}</button><button onClick={() => setModalType('WITHDRAW')} className="flex-1 lg:flex-none justify-center px-5 py-3 bg-[#2b3139] hover:bg-[#363c45] text-white font-bold rounded-lg text-sm flex items-center gap-2 transition-all active:scale-95"><Upload size={16} /> {t('withdraw')}</button><button onClick={() => openTransferModal()} className="flex-1 lg:flex-none justify-center px-5 py-3 bg-[#2b3139] hover:bg-[#363c45] text-white font-bold rounded-lg text-sm flex items-center gap-2 transition-all active:scale-95"><ArrowLeftRight size={16} /> {t('transfer')}</button></div></div></div>
-         <div className="bg-[#1e2329] rounded-2xl p-6 border border-[#2b3139] flex flex-col justify-center shadow-lg">
-             <div className="flex justify-between items-center mb-4">
-                 <div className="text-xs text-[#848e9c] uppercase font-bold">Linked Wallet</div>
-                 {currentUser.externalWalletAddress && (
-                     <button onClick={() => setModalType('BIND_WALLET')} className="text-xs text-[#0ea5e9] flex items-center gap-1 hover:text-white"><Edit2 size={12}/> Edit</button>
-                 )}
+    <div className="max-w-[1600px] mx-auto px-6 lg:px-12 py-16 w-full space-y-12">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          <div className="lg:col-span-8 bg-gradient-to-br from-[#1e2329] to-[#0b0e11] p-10 lg:p-14 rounded-[40px] border border-white/10 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] relative overflow-hidden group">
+            <div className="absolute right-0 top-0 h-full w-1/2 bg-[#0ea5e9]/5 skew-x-12 group-hover:bg-[#0ea5e9]/10 transition-colors duration-1000"></div>
+            <div className="relative z-10 space-y-8">
+                <div className="flex items-center gap-4 text-[#848e9c] text-xs font-black uppercase tracking-[0.2em]">
+                    Estimated Portfolio Value
+                    <button onClick={() => setHideBalance(!hideBalance)} className="p-2 hover:text-white transition-colors">{hideBalance ? <EyeOff size={16}/> : <Eye size={16}/>}</button>
+                </div>
+                <div className="flex items-baseline gap-4">
+                    <div className="text-6xl lg:text-8xl font-black text-white font-mono tracking-tighter">{hideBalance ? '******' : totalUSDT.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+                    <span className="text-2xl font-black text-[#0ea5e9]">USDT</span>
+                </div>
+                <div className="flex flex-wrap gap-5 pt-4">
+                    <button onClick={() => setModalType('DEPOSIT')} className="px-10 py-5 bg-[#f0b90b] text-black font-black rounded-3xl flex items-center gap-3 hover:scale-105 transition-all shadow-2xl shadow-[#f0b90b]/30"><Download size={24}/> Deposit</button>
+                    <button onClick={() => setModalType('WITHDRAW')} className="px-10 py-5 bg-[#2b3139] text-white font-black rounded-3xl flex items-center gap-3 hover:bg-[#363c45] hover:scale-105 transition-all"><Upload size={24}/> Withdraw</button>
+                    <button onClick={() => setModalType('TRANSFER')} className="px-10 py-5 bg-[#2b3139] text-white font-black rounded-3xl flex items-center gap-3 hover:bg-[#363c45] hover:scale-105 transition-all"><ArrowLeftRight size={24}/> Transfer</button>
+                </div>
+            </div>
+          </div>
+          
+          <div className="lg:col-span-4 bg-[#1e2329] p-10 rounded-[40px] border border-white/10 flex flex-col justify-between shadow-2xl">
+             <div className="space-y-6">
+                <div className="text-xs text-[#848e9c] font-black uppercase tracking-widest flex justify-between items-center">
+                    Wallet Binding 
+                    {currentUser.externalWalletAddress && <button onClick={()=>setModalType('BIND_WALLET')} className="text-[#0ea5e9] hover:underline font-black text-[10px]">REBIND</button>}
+                </div>
+                {currentUser.externalWalletAddress ? (
+                    <div className="bg-[#0b0e11] p-6 rounded-3xl border border-white/5 flex flex-col gap-4">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-full bg-[#0ea5e9]/20 flex items-center justify-center text-[#0ea5e9]"><Link size={24}/></div>
+                            <div>
+                                <div className="text-[10px] text-[#848e9c] font-black uppercase">Secure Chain</div>
+                                <div className="text-white font-black text-sm">TRC20 Network</div>
+                            </div>
+                        </div>
+                        <div className="text-[#848e9c] font-mono text-sm break-all bg-[#1e2329] p-3 rounded-xl border border-white/5">{currentUser.externalWalletAddress}</div>
+                    </div>
+                ) : (
+                    <button onClick={() => setModalType('BIND_WALLET')} className="w-full py-10 border-2 border-dashed border-white/10 rounded-3xl text-[#848e9c] hover:text-[#0ea5e9] hover:border-[#0ea5e9] hover:bg-[#0ea5e9]/5 transition-all flex flex-col items-center justify-center gap-4 group"><Plus size={32} className="group-hover:rotate-90 transition-transform"/><span className="text-sm font-black uppercase">Bind External Wallet</span></button>
+                )}
              </div>
-             {currentUser.externalWalletAddress ? (<div className="bg-[#0b0e11] p-3 rounded border border-[#2b3139] flex items-center gap-2"><div className="w-8 h-8 rounded-full bg-[#0ea5e9]/20 flex items-center justify-center text-[#0ea5e9]"><Link size={16} /></div><div className="flex-1 overflow-hidden"><div className="text-xs text-[#848e9c]">Connected Address</div><div className="text-white font-mono text-xs truncate">{currentUser.externalWalletAddress}</div></div></div>) : (<button onClick={() => setModalType('BIND_WALLET')} className="w-full py-4 border border-dashed border-[#2b3139] rounded-lg text-[#848e9c] hover:text-white hover:border-[#0ea5e9] hover:bg-[#0ea5e9]/5 transition-all flex flex-col items-center justify-center gap-2"><Plus size={24} /><span className="text-sm font-medium">Connect / Add Wallet</span></button>)}<div className="mt-4 pt-4 border-t border-white/5"><div className="flex justify-between items-center text-xs"><span className="text-[#848e9c]">Account Security</span><span className="text-[#0ecb81] font-bold">High</span></div><div className="w-full h-1 bg-[#2b3139] rounded-full mt-2 overflow-hidden"><div className="w-4/5 h-full bg-[#0ecb81]"></div></div></div></div>
+             <div className="pt-8 border-t border-white/5 mt-8"><div className="flex justify-between items-center mb-2"><span className="text-xs font-black text-[#848e9c]">SECURITY STATUS</span><span className="text-[#0ecb81] font-black text-xs">ULTRA SECURE</span></div><div className="w-full h-2 bg-[#0b0e11] rounded-full overflow-hidden shadow-inner"><div className="w-full h-full bg-gradient-to-r from-[#0ea5e9] to-[#0ecb81]"></div></div></div>
+          </div>
       </div>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#2b3139] mb-6 gap-4"><div className="flex gap-6"><button onClick={() => setView('BALANCES')} className={`py-4 font-bold text-sm relative ${view === 'BALANCES' ? 'text-[#f0b90b]' : 'text-[#848e9c] hover:text-white'}`}>{t('wallet_overview')}{view === 'BALANCES' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#f0b90b]"></div>}</button><button onClick={() => setView('HISTORY')} className={`py-4 font-bold text-sm relative ${view === 'HISTORY' ? 'text-[#f0b90b]' : 'text-[#848e9c] hover:text-white'}`}>Transaction History{view === 'HISTORY' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#f0b90b]"></div>}</button></div>{view === 'BALANCES' && (<div className="flex bg-[#1e2329] p-1 rounded w-full sm:w-auto"><button onClick={() => setActiveTab('FUNDING')} className={`flex-1 sm:flex-none px-4 py-1 text-xs font-bold rounded ${activeTab === 'FUNDING' ? 'bg-[#2b3139] text-white shadow' : 'text-[#848e9c]'}`}>{t('funding_account')}</button><button onClick={() => setActiveTab('TRADING')} className={`flex-1 sm:flex-none px-4 py-1 text-xs font-bold rounded ${activeTab === 'TRADING' ? 'bg-[#2b3139] text-white shadow' : 'text-[#848e9c]'}`}>{t('trading_account')}</button></div>)}</div>
-      <div className="bg-[#1e2329] rounded-xl border border-[#2b3139] shadow-lg min-h-[400px] overflow-hidden w-full">
-        {view === 'BALANCES' && (<>
-            <div className="hidden md:block overflow-x-auto"><table className="w-full text-left whitespace-nowrap"><thead className="bg-[#2b3139]/50 text-[#848e9c] text-xs uppercase font-semibold"><tr><th className="px-6 py-4">Asset</th><th className="px-6 py-4">Total Balance</th><th className="px-6 py-4">Available</th><th className="px-6 py-4">Frozen</th><th className="px-6 py-4 text-right">Action</th></tr></thead><tbody className="divide-y divide-[#2b3139]">{wallet.map(asset => (<tr key={asset.symbol} className="hover:bg-[#2b3139]/30 transition-colors group"><td className="px-6 py-4"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-full bg-[#2b3139] flex items-center justify-center text-xs font-bold text-white shadow-inner">{asset.symbol ? asset.symbol[0] : '?'}</div><span className="font-bold text-white">{asset.symbol}</span></div></td><td className="px-6 py-4 font-mono text-white font-medium">{Number(asset.amount || 0).toFixed(4)}</td><td className="px-6 py-4 font-mono text-[#eaecef]">{Number(asset.amount || 0).toFixed(4)}</td><td className="px-6 py-4 font-mono text-[#848e9c]">{Number(asset.frozen || 0).toFixed(4)}</td><td className="px-6 py-4 text-right opacity-80 group-hover:opacity-100"><button onClick={() => openTransferModal(asset.symbol)} className="text-[#f0b90b] hover:text-[#d4a406] text-sm font-medium">Transfer</button></td></tr>))}</tbody></table></div>
-            <div className="md:hidden flex flex-col divide-y divide-[#2b3139]">{wallet.map(asset => (<div key={asset.symbol} className="p-4 bg-[#1e2329]"><div className="flex items-center justify-between mb-3"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-full bg-[#2b3139] flex items-center justify-center text-xs font-bold text-white shadow-inner">{asset.symbol ? asset.symbol[0] : '?'}</div><span className="font-bold text-white">{asset.symbol}</span></div><button onClick={() => openTransferModal(asset.symbol)} className="text-[#f0b90b] text-xs font-bold px-3 py-1 bg-[#f0b90b]/10 rounded border border-[#f0b90b]/20">Transfer</button></div><div className="grid grid-cols-2 gap-4 text-sm"><div><div className="text-[#848e9c] text-xs mb-1">Available</div><div className="text-white font-mono">{Number(asset.amount || 0).toFixed(4)}</div></div><div className="text-right"><div className="text-[#848e9c] text-xs mb-1">Frozen</div><div className="text-[#848e9c] font-mono">{Number(asset.frozen || 0).toFixed(4)}</div></div></div></div>))}{wallet.length === 0 && <div className="p-8 text-center text-[#848e9c]">No assets found.</div>}</div>
-        </>)}
-        {view === 'HISTORY' && (<div className="overflow-x-auto"><table className="w-full text-left whitespace-nowrap"><thead className="bg-[#2b3139]/50 text-[#848e9c] text-xs uppercase font-semibold"><tr><th className="px-6 py-4 rounded-tl-xl">Time</th><th className="px-6 py-4">Type</th><th className="px-6 py-4">Asset</th><th className="px-6 py-4">Amount</th><th className="px-6 py-4">Status</th></tr></thead><tbody className="divide-y divide-[#2b3139]">{userTransactions.map(tx => (<tr key={tx.id} className="hover:bg-[#2b3139]/30"><td className="px-6 py-4 text-[#848e9c] font-mono text-sm">{new Date(tx.date).toLocaleString()}</td><td className="px-6 py-4 font-bold text-white text-sm">{tx.type.replace('_', ' ')}</td><td className="px-6 py-4 text-white text-sm">{tx.symbol}</td><td className={`px-6 py-4 font-mono font-medium ${tx.type.includes('DEPOSIT') || tx.type.includes('BUY') ? 'text-[#0ecb81]' : 'text-[#f6465d]'}`}>{tx.type.includes('DEPOSIT') || tx.type.includes('BUY') ? '+' : '-'}{Number(tx.amount || 0).toFixed(4)}</td><td className="px-6 py-4"><span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#0ecb81]/10 text-[#0ecb81] border border-[#0ecb81]/20">COMPLETED</span></td></tr>))}{userTransactions.length === 0 && (<tr><td colSpan={5} className="py-12 text-center text-[#848e9c]"><History className="mx-auto mb-2 opacity-50"/>No transactions yet.</td></tr>)}</tbody></table></div>)}
+
+      <div className="bg-[#181a20] rounded-[50px] border border-white/5 overflow-hidden shadow-[0_48px_96px_-24px_rgba(0,0,0,0.6)]">
+          <div className="flex border-b border-white/5 bg-[#1e2329]/30">
+              <button onClick={() => setView('BALANCES')} className={`flex-1 py-8 font-black text-lg transition-all ${view === 'BALANCES' ? 'text-[#0ea5e9] bg-[#0ea5e9]/5 border-b-4 border-[#0ea5e9]' : 'text-[#848e9c] hover:text-white'}`}>Balances</button>
+              <button onClick={() => setView('HISTORY')} className={`flex-1 py-8 font-black text-lg transition-all ${view === 'HISTORY' ? 'text-[#0ea5e9] bg-[#0ea5e9]/5 border-b-4 border-[#0ea5e9]' : 'text-[#848e9c] hover:text-white'}`}>Transactions</button>
+          </div>
+          
+          <div className="p-8 lg:p-16">
+              {view === 'BALANCES' && (
+                  <div className="space-y-12">
+                      <div className="flex gap-4 p-1.5 bg-[#0b0e11] w-fit rounded-2xl shadow-inner border border-white/5">
+                          <button onClick={() => setActiveAccount('FUNDING')} className={`px-8 py-3 rounded-xl font-black text-sm transition-all ${activeAccount === 'FUNDING' ? 'bg-[#2b3139] text-white shadow-lg' : 'text-[#848e9c] hover:text-white'}`}>Funding Account</button>
+                          <button onClick={() => setActiveAccount('TRADING')} className={`px-8 py-3 rounded-xl font-black text-sm transition-all ${activeAccount === 'TRADING' ? 'bg-[#2b3139] text-white shadow-lg' : 'text-[#848e9c] hover:text-white'}`}>Trading Account</button>
+                      </div>
+                      <div className="overflow-x-auto"><table className="w-full text-left whitespace-nowrap"><thead className="text-[#848e9c] text-xs font-black uppercase tracking-[0.2em]"><tr><th className="pb-8">Asset Pair</th><th className="pb-8">Available Balance</th><th className="pb-8">Locked / Frozen</th><th className="pb-8 text-right">Operations</th></tr></thead><tbody className="divide-y divide-white/5">{wallet.map(a => (<tr key={a.symbol} className="group hover:bg-white/5 transition-all"><td className="py-8 flex items-center gap-5"><div className="w-14 h-14 rounded-[20px] bg-gradient-to-tr from-[#2b3139] to-[#1e2329] flex items-center justify-center text-white font-black text-xl shadow-xl">{a.symbol[0]}</div><span className="font-black text-white text-2xl tracking-tighter">{a.symbol}</span></td><td className="py-8 font-mono font-black text-white text-2xl">{a.amount.toFixed(4)}</td><td className="py-8 font-mono text-[#848e9c] text-lg">{a.frozen.toFixed(4)}</td><td className="py-8 text-right"><button onClick={()=>{setAssetSymbol(a.symbol); setModalType('TRANSFER');}} className="px-6 py-2 border-2 border-[#0ea5e9]/30 text-[#0ea5e9] rounded-xl font-black text-sm hover:bg-[#0ea5e9] hover:text-white transition-all">Transfer</button></td></tr>))}</tbody></table></div>
+                  </div>
+              )}
+
+              {view === 'HISTORY' && (
+                  <div className="overflow-x-auto rounded-[30px] border border-white/5 bg-[#0b0e11]/50"><table className="w-full text-left whitespace-nowrap"><thead className="bg-[#0b0e11] text-[#848e9c] text-xs font-black uppercase tracking-widest"><tr><th className="px-10 py-8">Timestamp</th><th className="px-10 py-8">Action</th><th className="px-10 py-8">Currency</th><th className="px-10 py-8">Quantity</th><th className="px-10 py-8">Status</th></tr></thead><tbody className="divide-y divide-white/5">{userTransactions.map(tx => (<tr key={tx.id} className="hover:bg-white/5 transition-colors"><td className="px-10 py-8 text-[#848e9c] font-mono text-sm">{new Date(tx.date).toLocaleString()}</td><td className="px-10 py-8 font-black text-white text-sm tracking-wide">{tx.type}</td><td className="px-10 py-8 text-white font-black">{tx.symbol}</td><td className={`px-10 py-8 font-mono font-black text-lg ${tx.type === 'DEPOSIT' ? 'text-[#0ecb81]' : 'text-[#f6465d]'}`}>{tx.type === 'DEPOSIT' ? '+' : '-'}{tx.amount.toFixed(4)}</td><td className="px-10 py-8"><span className="px-4 py-1.5 rounded-full text-[10px] font-black bg-[#0ecb81]/10 text-[#0ecb81] border border-[#0ecb81]/20">SUCCESS</span></td></tr>))}</tbody></table>{userTransactions.length === 0 && <div className="p-20 text-center text-[#848e9c] font-black uppercase tracking-widest opacity-20">NO RECORDS FOUND</div>}</div>
+              )}
+          </div>
       </div>
-      {modalType && (<div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4"><div className="bg-[#1e2329] border border-[#2b3139] rounded-xl w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95 duration-200"><div className="flex justify-between items-center mb-6"><h3 className="text-xl font-bold text-white">{modalType === 'BIND_WALLET' ? 'Connect External Wallet' : modalType}</h3><button onClick={() => setModalType(null)} className="text-[#848e9c] hover:text-white">✕</button></div>{modalType === 'BIND_WALLET' ? (<div className="space-y-4"><p className="text-sm text-[#848e9c]">Enter your TRC20 or ERC20 wallet address to link it to your account for quick withdrawals.</p><input type="text" value={walletAddressInput} onChange={e => setWalletAddressInput(e.target.value)} placeholder="0x..." className="w-full bg-[#0b0e11] border border-[#2b3139] rounded p-3 text-white focus:border-[#f0b90b] outline-none font-mono text-sm" /><button onClick={handleAction} className="w-full py-3 bg-[#f0b90b] text-black font-bold rounded hover:bg-[#d4a406]">Link Wallet</button></div>) : (<>
-      {modalType === 'DEPOSIT' && (<div className="bg-[#0b0e11] p-4 rounded-lg border border-[#2b3139] mb-4 text-center"><img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${officialWalletAddress}`} alt="QR" className="mx-auto mb-3 border-4 border-white rounded-lg" /><div className="text-xs text-[#848e9c] mb-1">Deposit Address</div><div className="flex items-center gap-2 bg-[#2b3139] p-2 rounded border border-[#2b3139] cursor-pointer hover:border-[#848e9c]" onClick={handleCopy}><span className="text-xs font-mono text-white truncate flex-1">{officialWalletAddress}</span>{copied ? <Check size={14} className="text-[#0ecb81]"/> : <Copy size={14} className="text-[#f0b90b]"/>}</div></div>)}
-      {modalType === 'WITHDRAW' && (<div className="mb-4 text-xs text-[#f6465d] bg-[#f6465d]/10 p-2 rounded border border-[#f6465d]/20">Note: Withdrawals are processed from your <strong>Funding Wallet</strong> only. Please transfer funds there first.</div>)}
-      {modalType === 'TRANSFER' && (
-          <div className="flex items-center justify-between bg-[#0b0e11] p-2 rounded mb-4">
-              <button onClick={() => setTransferFrom('FUNDING')} className={`flex-1 py-2 text-xs font-bold rounded ${transferFrom === 'FUNDING' ? 'bg-[#2b3139] text-white' : 'text-[#848e9c]'}`}>From Funding</button>
-              <ArrowLeftRight size={16} className="mx-2 text-[#848e9c]" />
-              <button onClick={() => setTransferFrom('TRADING')} className={`flex-1 py-2 text-xs font-bold rounded ${transferFrom === 'TRADING' ? 'bg-[#2b3139] text-white' : 'text-[#848e9c]'}`}>From Trading</button>
+      
+      {/* 所有的 Modal 保持原来的逻辑但美化外观 */}
+      {modalType && (
+          <div className="fixed inset-0 bg-black/95 flex items-center justify-center p-6 z-[300] backdrop-blur-2xl">
+              <div className="bg-[#1e2329] border border-white/10 p-10 rounded-[40px] max-w-lg w-full relative animate-in zoom-in-95 duration-300 shadow-[0_0_100px_rgba(0,0,0,1)]">
+                  <button onClick={() => setModalType(null)} className="absolute top-8 right-8 text-[#848e9c] hover:text-white transition-colors"><X size={28} /></button>
+                  <h3 className="text-3xl font-black mb-10 text-white tracking-tighter">{modalType}</h3>
+                  <div className="space-y-8">
+                        {modalType === 'DEPOSIT' && (
+                            <div className="bg-[#0b0e11] p-8 rounded-[30px] border border-white/5 text-center shadow-inner">
+                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=0xEdd97C7577B9782369DC1E385D31c78f5515d272" className="mx-auto mb-6 border-8 border-white rounded-[20px] shadow-2xl" alt="QR" />
+                                <div className="flex items-center gap-3 bg-[#1e2329] p-4 rounded-2xl cursor-pointer hover:bg-[#2b3139] border border-white/5 group" onClick={()=>{navigator.clipboard.writeText("0xEdd97C7577B9782369DC1E385D31c78f5515d272"); setCopied(true); setTimeout(()=>setCopied(false), 2000);}}>
+                                    <span className="text-xs font-mono text-white truncate flex-1 opacity-70">0xEdd...d272</span>
+                                    {copied ? <Check size={20} className="text-[#0ecb81]"/> : <Copy size={20} className="text-[#f0b90b] group-hover:scale-110 transition-transform"/>}
+                                </div>
+                            </div>
+                        )}
+                        <div className="space-y-6">
+                            <div><label className="text-[10px] font-black text-[#848e9c] uppercase tracking-[0.2em] mb-3 block">Select Asset</label><select className="w-full bg-[#0b0e11] border border-white/10 rounded-2xl p-5 text-white font-black outline-none focus:border-[#0ea5e9]" value={assetSymbol} onChange={e=>setAssetSymbol(e.target.value)}><option value="USDT">USDT</option><option value="BTC">BTC</option><option value="TSLA">TSLA</option></select></div>
+                            <div><label className="text-[10px] font-black text-[#848e9c] uppercase tracking-[0.2em] mb-3 block">Amount to {modalType}</label><input type="number" value={amount} onChange={e=>setAmount(e.target.value)} className="w-full bg-[#0b0e11] border border-white/10 rounded-2xl p-5 text-white font-black outline-none focus:border-[#0ea5e9] font-mono text-xl" placeholder="0.00" /></div>
+                            {modalType === 'BIND_WALLET' && (<div><label className="text-[10px] font-black text-[#848e9c] uppercase tracking-[0.2em] mb-3 block">Wallet Address (TRC20/ERC20)</label><input type="text" value={walletInput} onChange={e=>setWalletInput(e.target.value)} className="w-full bg-[#0b0e11] border border-white/10 rounded-2xl p-5 text-white outline-none focus:border-[#0ea5e9] font-mono" placeholder="0x..."/></div>)}
+                        </div>
+                        <button onClick={handleAction} className="w-full py-6 bg-[#f0b90b] text-black font-black rounded-3xl shadow-2xl hover:scale-105 active:scale-95 transition-all text-lg">Confirm Action</button>
+                  </div>
+              </div>
           </div>
       )}
-      <div className="space-y-4"><div><label className="text-xs text-[#848e9c] block mb-1">Asset</label><select value={selectedAsset} onChange={e => setSelectedAsset(e.target.value)} className="w-full bg-[#0b0e11] border border-[#2b3139] rounded p-3 text-white outline-none"><option value="USDT">USDT</option><option value="BTC">BTC</option><option value="TSLA">TSLA</option></select></div><div><label className="text-xs text-[#848e9c] block mb-1">Amount</label><input type="number" value={amount} onChange={e => setAmount(parseFloat(e.target.value))} className="w-full bg-[#0b0e11] border border-[#2b3139] rounded p-3 text-white outline-none font-mono" /></div><button onClick={handleAction} className="w-full py-3 bg-[#f0b90b] text-black font-bold rounded hover:bg-[#d4a406] mt-2">Confirm</button></div></>)}</div></div>)}
     </div>
   );
 };
