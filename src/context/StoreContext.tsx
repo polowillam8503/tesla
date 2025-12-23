@@ -1,5 +1,6 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
-import { User, CoinData, NewsItem, CustomTokenConfig, Order, OrderType, TradeType, AssetBalance, AccountType, Transaction, Language, CandleData, MiningRig, SystemSettings } from '../types';
+import { User, CoinData, NewsItem, CustomTokenConfig, Order, OrderType, TradeType, AssetBalance, AccountType, Transaction, Language, CandleData, MiningRig, SystemSettings, ChatMessage } from '../types';
 import { translations } from '../services/i18n';
 import { supabase } from '../lib/supabase';
 
@@ -71,9 +72,12 @@ interface StoreContextType {
   formatPrice: (p: number) => string;
   
   isLoading: boolean;
-  // Added missing install modal state
   isInstallModalOpen: boolean;
   setInstallModalOpen: (val: boolean) => void;
+
+  // Chat implementation
+  chatMessages: ChatMessage[];
+  sendChatMessage: (text: string) => void;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -116,6 +120,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [userOrders, setUserOrders] = useState<Order[]>([]);
   const [userTransactions, setUserTransactions] = useState<Transaction[]>([]);
   const [isInstallModalOpen, setInstallModalOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 
   const t = (key: string) => translations[language][key] || key;
   const formatPrice = (p: number) => p < 1 ? p.toFixed(8) : p.toLocaleString(undefined, { minimumFractionDigits: 2 });
@@ -126,6 +131,16 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setTimeout(() => removeNotification(id), 5000);
   };
   const removeNotification = (id: string) => setNotifications(prev => prev.filter(n => n.id !== id));
+
+  const sendChatMessage = (text: string) => {
+      const userMsg: ChatMessage = { id: Date.now().toString(), text, sender: 'USER', timestamp: Date.now() };
+      setChatMessages(prev => [...prev, userMsg]);
+      // Simulated response
+      setTimeout(() => {
+          const sysMsg: ChatMessage = { id: (Date.now() + 1).toString(), text: "Thank you for reaching out. A customer service agent will be with you shortly.", sender: 'SYSTEM', timestamp: Date.now() };
+          setChatMessages(prev => [...prev, sysMsg]);
+      }, 1000);
+  };
 
   const mapProfileToUser = (profile: any): User => ({
       id: profile.id,
@@ -148,9 +163,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const fetchAllUsers = async () => {
       try {
           const { data: profiles } = await supabase.from('profiles').select('*');
-          if (profiles) {
-              setAllUsers(profiles.map(mapProfileToUser));
-          }
+          if (profiles) setAllUsers(profiles.map(mapProfileToUser));
       } catch (e) { console.error(e); }
   };
 
@@ -231,7 +244,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const issueNewToken = async (config: CustomTokenConfig) => {
-      const cleanData = {
+      const { error } = await supabase.from('custom_tokens').insert({
           symbol: config.symbol.toUpperCase(),
           name: config.name,
           price: config.price,
@@ -239,15 +252,19 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           logo_url: config.logoUrl || '',
           description: config.description || '',
           price_change_percent: config.priceChangePercent || 0
-      };
-      const { error } = await supabase.from('custom_tokens').insert(cleanData);
-      if (!error) {
-          showNotification('success', 'Token Issued Successfully');
-          refreshMarketData();
-      } else {
-          console.error(error);
-          showNotification('error', 'Token Issue Failed: ' + error.message);
-      }
+      });
+      if (!error) { showNotification('success', 'Token Issued Successfully'); refreshMarketData(); }
+      else showNotification('error', 'Token Issue Failed: ' + error.message);
+  };
+
+  const updateCustomToken = async (symbol: string, config: Partial<CustomTokenConfig>) => {
+      const { error } = await supabase.from('custom_tokens').update(config).eq('symbol', symbol);
+      if (!error) { showNotification('success', 'Token Updated'); refreshMarketData(); }
+  };
+
+  const deleteToken = async (symbol: string) => {
+      const { error } = await supabase.from('custom_tokens').delete().eq('symbol', symbol);
+      if (!error) { showNotification('success', 'Token Deleted'); refreshMarketData(); }
   };
 
   const placeOrder = async (symbol: string, type: OrderType, tradeType: TradeType, price: number, amount: number, leverage: number) => {
@@ -283,10 +300,12 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       }
       setUserOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'CANCELLED' } : o));
       await supabase.from('profiles').update({ trading_wallet: wallet }).eq('id', currentUser.id);
-      // Fixed error: Type '"ADMIN_ADJUST"' is now valid in Transaction['type']
-      const tx: Transaction = { id: Date.now().toString(), userId: currentUser.id, type: 'ADMIN_ADJUST', symbol: order.type === OrderType.BUY ? 'USDT' : order.symbol, amount: order.type === OrderType.BUY ? order.total : order.amount, status: 'COMPLETED', date: new Date().toISOString() } as any;
-      setUserTransactions(prev => [tx, ...prev]);
       showNotification('success', 'Order Cancelled');
+  };
+
+  const deposit = async (userId: string, symbol: string, amount: number) => {
+      const { error } = await supabase.from('transactions').insert({ user_id: userId, type: 'DEPOSIT', symbol, amount, status: 'PENDING' });
+      if (!error) { showNotification('success', 'Deposit Submitted'); }
   };
 
   const transfer = async (userId: string, symbol: string, amount: number, from: AccountType, to: AccountType) => {
@@ -305,14 +324,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       return false;
   };
 
-  const deposit = async (userId: string, symbol: string, amount: number) => {
-      const { error } = await supabase.from('transactions').insert({ user_id: userId, type: 'DEPOSIT', symbol, amount, status: 'PENDING' });
-      if (!error) { showNotification('success', 'Deposit Submitted'); setUserTransactions(prev => [{ id: Date.now().toString(), userId, type: 'DEPOSIT', symbol, amount, status: 'PENDING', date: new Date().toISOString() }, ...prev] as any); }
-  };
-
-  // Fixed error: Added updateMiningRig implementation
   const updateMiningRig = (rigId: string, updates: Partial<MiningRig>) => {
-    // Basic implementation for local state
     showNotification('info', 'Mining rig updated');
   };
 
@@ -320,12 +332,12 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     <StoreContext.Provider value={{
       currentUser, allUsers, login, register, logout, sendVerificationCode: async () => true, bindExternalWallet: () => {}, verifyKYC: () => {}, toggle2FA: () => {},
       notifications, showNotification, removeNotification, marketData, candleData: {}, refreshMarketData, generateCandles: () => [],
-      customToken, deployedTokens, updateCustomToken: async () => {}, issueNewToken, deleteToken: async () => {}, news, addNews: () => {}, systemSettings, updateSystemSettings: () => {},
+      customToken, deployedTokens, updateCustomToken, issueNewToken, deleteToken, news, addNews: () => {}, systemSettings, updateSystemSettings: () => {},
       placeOrder, userOrders, userTransactions, cancelOrder, deposit, withdraw: async () => true, transfer, mine: () => {}, boostHashrate: () => {}, buyRig: () => true, addRigToUser: () => {}, claimAirdrop: () => true,
       updateUser: () => {}, adminUpdateUserPassword: async () => {}, deleteUser: (id) => setAllUsers(prev => prev.filter(u => u.id !== id)), fetchPendingDeposits: async () => [], approveDeposit: async () => {},
       language, setLanguage, t, formatPrice, isLoading, miningRigs: [],
-      // Added missing methods and state
-      updateMiningRig, isInstallModalOpen, setInstallModalOpen
+      updateMiningRig, isInstallModalOpen, setInstallModalOpen,
+      chatMessages, sendChatMessage
     }}>
       {children}
     </StoreContext.Provider>

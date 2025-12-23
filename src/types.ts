@@ -1,3 +1,4 @@
+
 export type Language = 'en' | 'zh' | 'ja' | 'ko' | 'ru' | 'fr' | 'es';
 
 export interface CoinData {
@@ -55,6 +56,13 @@ export interface MiningRig {
   dailyOutput: number;
 }
 
+export interface ChatMessage {
+  id: string;
+  text: string;
+  sender: 'USER' | 'SYSTEM';
+  timestamp: number;
+}
+
 export interface User {
   id: string;
   email: string;
@@ -70,7 +78,6 @@ export interface User {
   referralCount: number;
   referralEarnings: number;
   externalWalletAddress?: string;
-  // Added missing fields used in context/StoreContext.tsx
   lastLogin: string;
   registerDate: string;
 }
@@ -101,7 +108,6 @@ export interface CustomTokenConfig {
   volume24h: number;
   description: string;
   enabled: boolean;
-  // Added missing fields used in context/StoreContext.tsx
   contractAddress?: string;
   minWithdraw?: number;
   feeRate?: number;
@@ -111,8 +117,7 @@ export interface CustomTokenConfig {
 export interface Transaction {
   id: string;
   userId: string;
-  // Added ADMIN_ADJUST to valid types
-  type: 'DEPOSIT' | 'WITHDRAW' | 'TRANSFER' | 'TRADE_BUY' | 'TRADE_SELL' | 'MINING' | 'ADMIN_ADJUST';
+  type: 'DEPOSIT' | 'WITHDRAW' | 'TRANSFER' | 'TRADE_BUY' | 'TRADE_SELL' | 'MINING' | 'ADMIN_ADJUST' | 'ORDER_CANCEL';
   symbol: string;
   amount: number;
   date: string;
@@ -121,7 +126,6 @@ export interface Transaction {
 export interface SystemSettings {
     telegram: string;
     twitter: string;
-    // Added missing field used in context/StoreContext.tsx
     discord: string;
     supportEmail: string;
     announcementBar: string;
