@@ -74,9 +74,9 @@ export const Home: React.FC<HomeProps> = ({ onNavigate }) => {
              <div className="col-span-2 bg-gradient-to-br from-[#0ea5e9] to-[#2563eb] p-8 rounded-3xl text-white relative overflow-hidden shadow-2xl cursor-pointer transition-all hover:scale-[1.02] active:scale-95 group" onClick={() => onNavigate('trade', { coinId: featureCoinId })}>
                 <div className="absolute -right-8 -bottom-8 opacity-20 rotate-12 group-hover:rotate-45 transition-transform duration-1000"><Zap size={180} /></div>
                 <div className="relative z-10 space-y-4">
-                    <div className="inline-block px-3 py-1 bg-white/20 rounded-full text-[10px] font-black uppercase tracking-widest">New Listing Hot</div>
+                    <div className="inline-block px-3 py-1 bg-white/20 rounded-full text-[10px] font-black uppercase tracking-widest">Premier Listing</div>
                     <div className="text-4xl font-black">{customToken.name}</div>
-                    <div className="text-sm font-bold opacity-80 line-clamp-2">{customToken.description || "Leading the future of decentralized finance ecosystem."}</div>
+                    <div className="text-sm font-bold opacity-80 line-clamp-2">{customToken.description || "The future of decentralized governance"}</div>
                     <div className="flex items-center gap-4">
                         <span className="text-3xl font-mono font-black">${formatPrice(customToken.price)}</span>
                         <span className="bg-white/30 px-3 py-1 rounded-xl text-sm font-black">+{customToken.priceChangePercent}%</span>

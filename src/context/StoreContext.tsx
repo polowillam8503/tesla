@@ -1,5 +1,4 @@
-
-import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, CoinData, NewsItem, CustomTokenConfig, Order, OrderType, TradeType, AssetBalance, AccountType, Transaction, Language, CandleData, MiningRig, SystemSettings, ChatMessage } from '../types';
 import { translations } from '../services/i18n';
 import { supabase } from '../lib/supabase';
@@ -42,16 +41,17 @@ interface StoreContextType {
   systemSettings: SystemSettings;
   updateSystemSettings: (settings: Partial<SystemSettings>) => void;
 
-  miningRigs: MiningRig[];
-  updateMiningRig: (rigId: string, updates: Partial<MiningRig>) => void;
-
   placeOrder: (symbol: string, type: OrderType, tradeType: TradeType, price: number, amount: number, leverage: number, triggerPrice?: number) => Promise<boolean>;
   userOrders: Order[];
   userTransactions: Transaction[];
   cancelOrder: (orderId: string) => Promise<void>;
   
   deposit: (userId: string, symbol: string, amount: number) => Promise<void>;
-  withdraw: (userId: string, symbol: string, amount: number) => Promise<boolean>;
+  withdraw: (userId: string, symbol: string, amount: number, address: string) => Promise<boolean>;
+  // Fix: Added missing context properties
+  miningRigs: MiningRig[];
+  isInstallModalOpen: boolean;
+  setInstallModalOpen: (open: boolean) => void;
   transfer: (userId: string, symbol: string, amount: number, from: AccountType, to: AccountType) => Promise<boolean>;
   mine: (userId: string) => void;
   boostHashrate: (userId: string) => void;
@@ -72,10 +72,6 @@ interface StoreContextType {
   formatPrice: (p: number) => string;
   
   isLoading: boolean;
-  isInstallModalOpen: boolean;
-  setInstallModalOpen: (val: boolean) => void;
-
-  // Chat implementation
   chatMessages: ChatMessage[];
   sendChatMessage: (text: string) => void;
 }
@@ -83,9 +79,8 @@ interface StoreContextType {
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
 const initialCustomToken: CustomTokenConfig = {
-  symbol: 'TSLA', name: 'Tsla Coin', price: 124.50, priceChangePercent: 5.24, supply: 100000000, volume24h: 5000000,
+  symbol: 'TSLA', name: 'Tsla Coin', price: 124.50, priceChangePercent: 5.24, supply: 100000000,
   description: 'The official governance token of the Tsla Global Exchange ecosystem.', enabled: true,
-  contractAddress: '0x123...abc', minWithdraw: 10, feeRate: 0.001, logoUrl: 'https://via.placeholder.com/64/0ea5e9/ffffff?text=T'
 };
 
 const initialSystemSettings: SystemSettings = {
@@ -100,16 +95,17 @@ const coinIcons: Record<string, string> = {
     usdt: 'https://assets.coingecko.com/coins/images/325/large/Tether.png',
 };
 
-const fallbackMarketData: CoinData[] = [
-  { id: 'bitcoin', symbol: 'btc', name: 'Bitcoin', image: coinIcons.btc, current_price: 64230.50, market_cap: 1200000000000, market_cap_rank: 1, fully_diluted_valuation: null, total_volume: 35000000000, high_24h: 65100, low_24h: 63800, price_change_24h: 1234.56, price_change_percentage_24h: 1.85, circulating_supply: 19000000, total_supply: 21000000, max_supply: 21000000, ath: 73700, atl: 65, isCustom: false },
-  { id: 'ethereum', symbol: 'eth', name: 'Ethereum', image: coinIcons.eth, current_price: 3450.78, market_cap: 400000000000, market_cap_rank: 2, fully_diluted_valuation: null, total_volume: 15000000000, high_24h: 3520, low_24h: 3380, price_change_24h: -45.67, price_change_percentage_24h: -1.2, circulating_supply: 120000000, total_supply: 120000000, max_supply: null, ath: 4800, atl: 0.4, isCustom: false },
-  { id: 'tether', symbol: 'usdt', name: 'Tether', image: coinIcons.usdt, current_price: 1.00, market_cap: 103000000000, market_cap_rank: 3, fully_diluted_valuation: null, total_volume: 50000000000, high_24h: 1.001, low_24h: 0.999, price_change_24h: 0.00, price_change_percentage_24h: 0.00, circulating_supply: 103000000000, total_supply: 103000000000, max_supply: null, ath: 1.01, atl: 0.99, isCustom: false },
+// Fix: Static list of available mining rigs
+const initialMiningRigs: MiningRig[] = [
+    { id: 'rig_1', name: 'AntMiner S9', hashrate: 15, cost: 500, dailyOutput: 5 },
+    { id: 'rig_2', name: 'WhatsMiner M30', hashrate: 45, cost: 1200, dailyOutput: 18 },
+    { id: 'rig_3', name: 'AntMiner S19 Pro', hashrate: 110, cost: 3500, dailyOutput: 50 }
 ];
 
 export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [allUsers, setAllUsers] = useState<User[]>([]);
-  const [marketData, setMarketData] = useState<CoinData[]>(fallbackMarketData);
+  const [marketData, setMarketData] = useState<CoinData[]>([]);
   const [deployedTokens, setDeployedTokens] = useState<CustomTokenConfig[]>([]);
   const [customToken, setCustomToken] = useState<CustomTokenConfig>(initialCustomToken);
   const [news, setNews] = useState<NewsItem[]>([]);
@@ -119,8 +115,9 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [systemSettings, setSystemSettings] = useState<SystemSettings>(initialSystemSettings);
   const [userOrders, setUserOrders] = useState<Order[]>([]);
   const [userTransactions, setUserTransactions] = useState<Transaction[]>([]);
-  const [isInstallModalOpen, setInstallModalOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  // Fix: Added missing states
+  const [isInstallModalOpen, setInstallModalOpen] = useState(false);
 
   const t = (key: string) => translations[language][key] || key;
   const formatPrice = (p: number) => p < 1 ? p.toFixed(8) : p.toLocaleString(undefined, { minimumFractionDigits: 2 });
@@ -132,22 +129,13 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
   const removeNotification = (id: string) => setNotifications(prev => prev.filter(n => n.id !== id));
 
-  const sendChatMessage = (text: string) => {
-      const userMsg: ChatMessage = { id: Date.now().toString(), text, sender: 'USER', timestamp: Date.now() };
-      setChatMessages(prev => [...prev, userMsg]);
-      // Simulated response
-      setTimeout(() => {
-          const sysMsg: ChatMessage = { id: (Date.now() + 1).toString(), text: "Thank you for reaching out. A customer service agent will be with you shortly.", sender: 'SYSTEM', timestamp: Date.now() };
-          setChatMessages(prev => [...prev, sysMsg]);
-      }, 1000);
-  };
-
   const mapProfileToUser = (profile: any): User => ({
       id: profile.id,
       email: profile.email,
-      isAdmin: profile.is_admin || profile.email === 'polo8503@icloud.com' || profile.email === '3649357947@qq.com', 
+      isAdmin: profile.is_admin || profile.email === 'polo8503@icloud.com', 
       isFrozen: profile.is_frozen || false,
       kycLevel: profile.kyc_level || 0,
+      riskLevel: profile.risk_level || 'LOW',
       fundingWallet: Array.isArray(profile.funding_wallet) ? profile.funding_wallet : [],
       tradingWallet: Array.isArray(profile.trading_wallet) ? profile.trading_wallet : [],
       miningBalance: profile.mining_balance || 0,
@@ -159,13 +147,6 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       lastLogin: profile.last_login || new Date().toISOString(),
       registerDate: profile.created_at || new Date().toISOString()
   });
-
-  const fetchAllUsers = async () => {
-      try {
-          const { data: profiles } = await supabase.from('profiles').select('*');
-          if (profiles) setAllUsers(profiles.map(mapProfileToUser));
-      } catch (e) { console.error(e); }
-  };
 
   const fetchProfile = async () => {
       try {
@@ -179,6 +160,11 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
               }
           }
       } catch (e) { console.error(e); }
+  };
+
+  const fetchAllUsers = async () => {
+      const { data } = await supabase.from('profiles').select('*');
+      if (data) setAllUsers(data.map(mapProfileToUser));
   };
 
   useEffect(() => {
@@ -208,16 +194,17 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const refreshMarketData = async () => {
-      let finalData: CoinData[] = [];
+      let publicData: CoinData[] = [];
       try {
         const res = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&sparkline=true');
         if (res.ok) {
             const raw = await res.json();
-            finalData = raw.map((c: any) => ({ ...c, image: c.image || coinIcons[c.symbol.toLowerCase()] || 'https://via.placeholder.com/64' }));
-        } else { finalData = [...fallbackMarketData]; }
-      } catch { finalData = [...fallbackMarketData]; }
+            publicData = raw.map((c: any) => ({ ...c, image: c.image || coinIcons[c.symbol.toLowerCase()] || 'https://via.placeholder.com/64' }));
+        }
+      } catch (e) { console.warn("API Fail"); }
 
       const { data: tokens } = await supabase.from('custom_tokens').select('*').order('created_at', { ascending: false });
+      const customCoins: CoinData[] = [];
       const deployed: CustomTokenConfig[] = [];
       
       if (tokens && Array.isArray(tokens)) {
@@ -232,45 +219,22 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                   circulating_supply: Number(t.supply), total_supply: Number(t.supply), max_supply: Number(t.supply),
                   ath: Number(t.price), atl: Number(t.price), sparkline_in_7d: { price: Array(168).fill(Number(t.price)) }, isCustom: true
               };
-              finalData.unshift(coinData);
-              const config: CustomTokenConfig = { symbol: t.symbol, name: t.name, price: Number(t.price), priceChangePercent: Number(t.price_change_percent), supply: Number(t.supply), volume24h: 5000000, description: t.description || '', enabled: true, logoUrl: t.logo_url };
+              customCoins.push(coinData);
+              const config: CustomTokenConfig = { symbol: t.symbol, name: t.name, price: Number(t.price), priceChangePercent: Number(t.price_change_percent), supply: Number(t.supply), description: t.description || '', enabled: true, logoUrl: t.logo_url };
               deployed.push(config);
               if (index === 0) setCustomToken(config);
           });
       }
-      setMarketData(finalData);
+      setMarketData([...customCoins, ...publicData]);
       setDeployedTokens(deployed);
       setIsLoading(false);
-  };
-
-  const issueNewToken = async (config: CustomTokenConfig) => {
-      const { error } = await supabase.from('custom_tokens').insert({
-          symbol: config.symbol.toUpperCase(),
-          name: config.name,
-          price: config.price,
-          supply: config.supply,
-          logo_url: config.logoUrl || '',
-          description: config.description || '',
-          price_change_percent: config.priceChangePercent || 0
-      });
-      if (!error) { showNotification('success', 'Token Issued Successfully'); refreshMarketData(); }
-      else showNotification('error', 'Token Issue Failed: ' + error.message);
-  };
-
-  const updateCustomToken = async (symbol: string, config: Partial<CustomTokenConfig>) => {
-      const { error } = await supabase.from('custom_tokens').update(config).eq('symbol', symbol);
-      if (!error) { showNotification('success', 'Token Updated'); refreshMarketData(); }
-  };
-
-  const deleteToken = async (symbol: string) => {
-      const { error } = await supabase.from('custom_tokens').delete().eq('symbol', symbol);
-      if (!error) { showNotification('success', 'Token Deleted'); refreshMarketData(); }
   };
 
   const placeOrder = async (symbol: string, type: OrderType, tradeType: TradeType, price: number, amount: number, leverage: number) => {
       if (!currentUser) return false;
       const wallet = [...currentUser.tradingWallet];
-      const total = price * amount;
+      const total = (price * amount) / (tradeType === TradeType.FUTURES ? leverage : 1);
+      
       if (type === OrderType.BUY) {
           const usdt = wallet.find(a => a.symbol === 'USDT');
           if (!usdt || usdt.amount < total) { showNotification('error', 'Insufficient USDT'); return false; }
@@ -280,7 +244,8 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           if (!asset || asset.amount < amount) { showNotification('error', `Insufficient ${symbol}`); return false; }
           asset.amount -= amount; asset.frozen = (asset.frozen || 0) + amount;
       }
-      const newOrder: Order = { id: Math.random().toString(36).substr(2, 9), userId: currentUser.id, symbol, type, tradeType, priceType: 'LIMIT', price, amount, total, timestamp: Date.now(), status: 'OPEN' };
+
+      const newOrder: Order = { id: Math.random().toString(36).substr(2, 9), userId: currentUser.id, symbol, type, tradeType, priceType: 'LIMIT', price, amount, leverage, total, timestamp: Date.now(), status: 'OPEN' };
       setUserOrders(prev => [newOrder, ...prev]);
       await supabase.from('profiles').update({ trading_wallet: wallet }).eq('id', currentUser.id);
       showNotification('success', 'Order Placed');
@@ -303,40 +268,53 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       showNotification('success', 'Order Cancelled');
   };
 
-  const deposit = async (userId: string, symbol: string, amount: number) => {
-      const { error } = await supabase.from('transactions').insert({ user_id: userId, type: 'DEPOSIT', symbol, amount, status: 'PENDING' });
-      if (!error) { showNotification('success', 'Deposit Submitted'); }
-  };
-
   const transfer = async (userId: string, symbol: string, amount: number, from: AccountType, to: AccountType) => {
       if (!currentUser) return false;
       const fromKey = from === 'FUNDING' ? 'funding_wallet' : 'trading_wallet';
       const toKey = to === 'FUNDING' ? 'funding_wallet' : 'trading_wallet';
       const fromWallet = from === 'FUNDING' ? [...currentUser.fundingWallet] : [...currentUser.tradingWallet];
       const toWallet = to === 'FUNDING' ? [...currentUser.fundingWallet] : [...currentUser.tradingWallet];
+      
       const src = fromWallet.find(a => a.symbol === symbol);
       if (!src || src.amount < amount) { showNotification('error', 'Insufficient Balance'); return false; }
+      
       src.amount -= amount;
       const dst = toWallet.find(a => a.symbol === symbol);
       if (dst) dst.amount += amount; else toWallet.push({ symbol, amount, frozen: 0 });
+      
       const { error } = await supabase.from('profiles').update({ [fromKey]: fromWallet, [toKey]: toWallet }).eq('id', userId);
       if (!error) { showNotification('success', 'Transfer Success'); fetchProfile(); return true; }
       return false;
   };
 
-  const updateMiningRig = (rigId: string, updates: Partial<MiningRig>) => {
-    showNotification('info', 'Mining rig updated');
+  const withdraw = async (userId: string, symbol: string, amount: number, address: string) => {
+      const { error } = await supabase.from('transactions').insert({ user_id: userId, type: 'WITHDRAW', symbol, amount, status: 'PENDING', metadata: { address } });
+      if (!error) { showNotification('success', 'Withdrawal Request Submitted'); return true; }
+      return false;
+  };
+
+  const issueNewToken = async (config: CustomTokenConfig) => {
+      const { error } = await supabase.from('custom_tokens').insert({
+          symbol: config.symbol.toUpperCase(), name: config.name, price: config.price, supply: config.supply, logo_url: config.logoUrl, description: config.description, price_change_percent: config.priceChangePercent
+      });
+      if (!error) { showNotification('success', 'Token Issued'); refreshMarketData(); }
+  };
+
+  const sendChatMessage = (text: string) => {
+      setChatMessages(prev => [...prev, { id: Date.now().toString(), text, sender: 'USER', timestamp: Date.now() }]);
   };
 
   return (
     <StoreContext.Provider value={{
       currentUser, allUsers, login, register, logout, sendVerificationCode: async () => true, bindExternalWallet: () => {}, verifyKYC: () => {}, toggle2FA: () => {},
       notifications, showNotification, removeNotification, marketData, candleData: {}, refreshMarketData, generateCandles: () => [],
-      customToken, deployedTokens, updateCustomToken, issueNewToken, deleteToken, news, addNews: () => {}, systemSettings, updateSystemSettings: () => {},
-      placeOrder, userOrders, userTransactions, cancelOrder, deposit, withdraw: async () => true, transfer, mine: () => {}, boostHashrate: () => {}, buyRig: () => true, addRigToUser: () => {}, claimAirdrop: () => true,
-      updateUser: () => {}, adminUpdateUserPassword: async () => {}, deleteUser: (id) => setAllUsers(prev => prev.filter(u => u.id !== id)), fetchPendingDeposits: async () => [], approveDeposit: async () => {},
-      language, setLanguage, t, formatPrice, isLoading, miningRigs: [],
-      updateMiningRig, isInstallModalOpen, setInstallModalOpen,
+      customToken, deployedTokens, updateCustomToken: async () => {}, issueNewToken, deleteToken: async () => {}, news, addNews: () => {}, systemSettings, updateSystemSettings: () => {},
+      placeOrder, userOrders, userTransactions, cancelOrder, deposit: async () => {}, withdraw, 
+      // Fix: Provided missing state values
+      miningRigs: initialMiningRigs, isInstallModalOpen, setInstallModalOpen,
+      transfer, mine: () => {}, boostHashrate: () => {}, buyRig: () => true, addRigToUser: () => {}, claimAirdrop: () => true,
+      updateUser: () => {}, adminUpdateUserPassword: async () => {}, deleteUser: () => {}, fetchPendingDeposits: async () => [], approveDeposit: async () => {},
+      language, setLanguage, t, formatPrice, isLoading,
       chatMessages, sendChatMessage
     }}>
       {children}

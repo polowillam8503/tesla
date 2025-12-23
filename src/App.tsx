@@ -16,7 +16,7 @@ const App: React.FC = () => {
 
   const navigate = (page: string, params?: any) => {
     setActivePage(page);
-    if (params) setPageParams(params);
+    setPageParams(params || null);
   };
 
   const renderPage = () => {

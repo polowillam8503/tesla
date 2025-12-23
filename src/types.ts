@@ -69,6 +69,7 @@ export interface User {
   isAdmin: boolean;
   isFrozen: boolean;
   kycLevel: number;
+  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
   fundingWallet: AssetBalance[];
   tradingWallet: AssetBalance[];
   miningBalance: number;
@@ -93,6 +94,7 @@ export interface Order {
   tradeType: TradeType;
   priceType: 'LIMIT' | 'MARKET' | 'STOP';
   price: number;
+  leverage: number;
   amount: number;
   total: number;
   timestamp: number;
@@ -105,13 +107,10 @@ export interface CustomTokenConfig {
   price: number;
   priceChangePercent: number;
   supply: number;
-  volume24h: number;
   description: string;
   enabled: boolean;
-  contractAddress?: string;
-  minWithdraw?: number;
-  feeRate?: number;
   logoUrl?: string;
+  contractAddress?: string;
 }
 
 export interface Transaction {
@@ -120,6 +119,7 @@ export interface Transaction {
   type: 'DEPOSIT' | 'WITHDRAW' | 'TRANSFER' | 'TRADE_BUY' | 'TRADE_SELL' | 'MINING' | 'ADMIN_ADJUST' | 'ORDER_CANCEL';
   symbol: string;
   amount: number;
+  status: 'COMPLETED' | 'PENDING' | 'FAILED';
   date: string;
 }
 
